@@ -1,0 +1,29 @@
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build directories (if any)
+dist/
+build/
+
+# Optional: Editor files
+.vscode/
+.idea/
+
+# Optional: npm cache
+.npm
+
+# Optional: lock files you don't want to commit (if using multiple package managers)
+package-lock.json
+yarn.lock

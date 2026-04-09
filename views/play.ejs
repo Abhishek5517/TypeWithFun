@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TypeFun – Play</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root{
+  --bg:#0a0a0f;--surface:#12121a;--card:#1a1a26;--card2:#1e1e2e;
+  --border:#2a2a3d;--border2:#3a3a5c;
+  --accent:#6d28d9;--accent2:#7c3aed;--accent3:#8b5cf6;
+  --glow:rgba(109,40,217,0.25);
+  --green:#10b981;--green-g:rgba(16,185,129,0.2);
+  --amber:#f59e0b;--red:#ef4444;--blue:#3b82f6;
+  --text:#e8e8f0;--text2:#a0a0c0;--muted:#5a5a7a;
+  --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;opacity:0.2;z-index:0;pointer-events:none}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 24px}
+.nav-inner{max-width:1200px;margin:0 auto;height:60px;display:flex;align-items:center;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-icon{width:36px;height:36px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px;color:#fff;box-shadow:0 0 16px var(--glow);flex-shrink:0}
+.logo-text{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--text)}
+.logo-text span{color:var(--accent3)}
+.nav-links{display:flex;gap:4px;margin-left:auto}
+.nav-link{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;color:var(--text2);text-decoration:none;transition:.2s;border:1px solid transparent}
+.nav-link:hover{color:var(--text);background:var(--card);border-color:var(--border)}
+.nav-link.active{color:var(--accent3);background:rgba(109,40,217,0.12);border-color:rgba(109,40,217,0.3)}
+.user-chip{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:99px;padding:5px 14px 5px 5px;margin-left:8px}
+.avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.user-name{font-size:13px;font-weight:500;color:var(--text)}
+
+/* LAYOUT */
+.page{max-width:1200px;margin:0 auto;padding:24px;position:relative;z-index:1}
+.section-title{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+
+/* MODE TABS */
+.mode-tabs{display:flex;background:var(--surface);border-radius:14px;padding:5px;border:1px solid var(--border);margin-bottom:24px;width:fit-content}
+.mode-tab{padding:9px 20px;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;transition:.2s;color:var(--text2);border:1px solid transparent}
+.mode-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 0 20px var(--glow)}
+
+/* SOLO AREA */
+.solo-panel,.multi-panel{display:none}
+.solo-panel.show,.multi-panel.show{display:block}
+
+/* TIME / MODE CONTROLS */
+.controls-row{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.ctrl-group{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.ctrl-btn{padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;background:transparent;color:var(--text2);border:none;border-right:1px solid var(--border);transition:.15s;font-family:var(--sans)}
+.ctrl-btn:last-child{border-right:none}
+.ctrl-btn:hover{color:var(--text);background:var(--card)}
+.ctrl-btn.active{background:var(--accent);color:#fff}
+
+/* STATS ROW */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden}
+.stat-box::before{content:'';position:absolute;inset:0;opacity:0;transition:.3s}
+.stat-box.wpm-box::before{background:linear-gradient(135deg,rgba(109,40,217,0.1),transparent)}
+.stat-box.acc-box::before{background:linear-gradient(135deg,rgba(16,185,129,0.1),transparent)}
+.stat-box.time-box::before{background:linear-gradient(135deg,rgba(239,68,68,0.1),transparent)}
+.stat-box.keys-box::before{background:linear-gradient(135deg,rgba(245,158,11,0.1),transparent)}
+.stat-box.active-stat::before{opacity:1}
+.stat-lbl{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px}
+.stat-val{font-family:var(--mono);font-size:32px;font-weight:700;line-height:1}
+.stat-val.wpm{color:var(--accent3)}
+.stat-val.acc{color:var(--green)}
+.stat-val.timer{color:var(--red)}
+.stat-val.keys{color:var(--amber)}
+.stat-unit{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* PROGRESS */
+.prog-bar{height:3px;background:var(--surface);border-radius:99px;margin-bottom:20px;overflow:hidden;border:1px solid var(--border)}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent3));border-radius:99px;width:0%;transition:width .15s ease}
+
+/* TYPING BOX */
+.type-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;cursor:text;transition:.2s;position:relative}
+.type-box:hover{border-color:var(--border2)}
+.type-box.focused{border-color:rgba(109,40,217,0.5);box-shadow:0 0 0 3px var(--glow)}
+#text-display{font-family:var(--mono);font-size:20px;line-height:2;letter-spacing:.3px;user-select:none;min-height:100px;margin-bottom:16px}
+#text-display span.correct{color:var(--green)}
+#text-display span.wrong{color:var(--red);text-decoration:underline;text-underline-offset:4px}
+#text-display span.current{border-bottom:2.5px solid var(--accent3);color:var(--text);animation:blink 1s infinite}
+#text-display span.pending{color:var(--muted)}
+@keyframes blink{0%,100%{border-color:var(--accent3)}50%{border-color:transparent}}
+#hidden-input{opacity:0;position:absolute;height:0;width:0;pointer-events:none}
+.type-hint{font-size:13px;color:var(--muted);border-top:1px solid var(--border);padding-top:12px;display:flex;align-items:center;gap:8px}
+.type-hint i{font-size:14px}
+
+/* RESULT OVERLAY */
+.result-panel{background:var(--card);border:1px solid rgba(109,40,217,0.4);border-radius:16px;padding:28px;margin-top:16px;display:none;text-align:center;box-shadow:0 0 40px var(--glow)}
+.result-emoji{font-size:40px;margin-bottom:8px}
+.result-title{font-family:var(--mono);font-size:22px;font-weight:700;margin-bottom:4px}
+.result-sub{color:var(--text2);font-size:14px;margin-bottom:24px}
+.result-stats{display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin-bottom:24px}
+.rs{text-align:center}
+.rs-num{font-family:var(--mono);font-size:30px;font-weight:700}
+.rs-lbl{font-size:12px;color:var(--muted);margin-top:2px}
+.btn-restart{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:.2s;box-shadow:0 0 20px var(--glow)}
+.btn-restart:hover{background:var(--accent2);transform:translateY(-1px)}
+
+/* MULTIPLAYER */
+.multi-layout{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+.room-sidebar{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px}
+.race-main{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px}
+
+.room-actions{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.btn-create{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;width:100%;transition:.2s;box-shadow:0 0 16px var(--glow)}
+.btn-create:hover{background:var(--accent2)}
+.join-form{display:flex;gap:8px}
+.join-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;font-family:var(--mono);letter-spacing:2px;text-transform:uppercase;outline:none}
+.join-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--glow)}
+.btn-join{background:var(--green);color:#fff;border:none;border-radius:10px;padding:11px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+
+.room-info{border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;display:none}
+.room-code-display{font-family:var(--mono);font-size:28px;font-weight:700;color:var(--accent3);letter-spacing:4px;text-align:center;margin-bottom:4px}
+.room-status-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 12px;border-radius:99px;font-weight:600;margin:0 auto 12px;display:flex;width:fit-content}
+.badge-waiting{background:rgba(245,158,11,0.15);color:var(--amber);border:1px solid rgba(245,158,11,0.3)}
+.badge-racing{background:rgba(16,185,129,0.15);color:var(--green);border:1px solid rgba(16,185,129,0.3)}
+.btn-start{width:100%;background:var(--green);color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;transition:.2s;display:none}
+.btn-start:hover{filter:brightness(1.1)}
+
+.players-list{display:flex;flex-direction:column;gap:8px}
+.player-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px}
+.p-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.p-name{font-size:13px;font-weight:500;flex:1}
+.p-you{font-size:10px;color:var(--accent3);font-weight:600;padding:2px 8px;background:rgba(139,92,246,0.15);border-radius:99px}
+.p-wpm{font-family:var(--mono);font-size:13px;color:var(--accent3);min-width:50px;text-align:right}
+
+/* RACE TRACK */
+.race-track-area{margin-bottom:20px}
+.race-track{margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.track-player{font-size:12px;color:var(--text2);width:90px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track-bar{flex:1;height:28px;background:var(--surface);border-radius:8px;overflow:hidden;border:1px solid var(--border);position:relative}
+.track-fill{height:100%;border-radius:8px;transition:width .3s ease;min-width:4px;position:relative;display:flex;align-items:center;justify-content:flex-end;padding-right:8px}
+.track-car{font-size:14px;position:absolute;right:-2px}
+.track-wpm{font-family:var(--mono);font-size:11px;color:var(--muted);width:60px;text-align:right;flex-shrink:0}
+
+/* RACE TYPING */
+.race-text-box{display:none;margin-top:16px}
+.countdown-overlay{position:absolute;inset:0;background:rgba(10,10,15,0.85);border-radius:16px;display:none;align-items:center;justify-content:center;z-index:10;flex-direction:column;gap:8px}
+.countdown-num{font-family:var(--mono);font-size:80px;font-weight:700;color:var(--accent3);text-shadow:0 0 40px var(--glow);animation:pulse .8s ease}
+@keyframes pulse{from{transform:scale(1.3);opacity:.5}to{transform:scale(1);opacity:1}}
+.countdown-msg{font-size:16px;color:var(--text2)}
+
+.multi-result{background:var(--card);border:1px solid rgba(16,185,129,0.3);border-radius:16px;padding:24px;display:none;margin-top:16px}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:8px;margin-bottom:24px}
+.podium-item{text-align:center}
+.podium-bar{width:80px;background:var(--surface);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:20px}
+.podium-name{font-size:13px;font-weight:500;margin-top:8px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.podium-wpm{font-family:var(--mono);font-size:14px;color:var(--accent3)}
+.podium-1 .podium-bar{height:100px;background:linear-gradient(180deg,rgba(245,158,11,0.3),transparent);border:1px solid var(--amber)}
+.podium-2 .podium-bar{height:70px;background:linear-gradient(180deg,rgba(148,163,184,0.2),transparent);border:1px solid #94a3b8}
+.podium-3 .podium-bar{height:50px;background:linear-gradient(180deg,rgba(180,83,9,0.2),transparent);border:1px solid #b45309}
+
+.btn-new-race{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:600;cursor:pointer;margin:0 auto;display:block}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;z-index:1000;display:flex;flex-direction:column;gap:8px}
+.toast-item{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:13px;display:flex;align-items:center;gap:10px;animation:slideIn .3s ease;box-shadow:0 8px 24px rgba(0,0,0,0.4)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast-item.success{border-color:rgba(16,185,129,0.4);color:#6ee7b7}
+.toast-item.error{border-color:rgba(239,68,68,0.4);color:#fca5a5}
+.toast-item.info{border-color:rgba(109,40,217,0.4);color:var(--accent3)}
+
+@media(max-width:768px){
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .multi-layout{grid-template-columns:1fr}
+  #text-display{font-size:16px}
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<nav>
+  <div class="nav-inner">
+    <a href="/play" class="logo">
+      <div class="logo-icon">TF</div>
+      <div class="logo-text">Type<span>Fun</span></div>
+    </a>
+    <div class="nav-links">
+      <a href="/play" class="nav-link active"><i class="fa-solid fa-keyboard"></i> Play</a>
+      <a href="/dashboard" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+      <a href="/leaderboard" class="nav-link"><i class="fa-solid fa-trophy"></i> Leaderboard</a>
+    </div>
+    <div class="user-chip" style="margin-left:auto">
+      <div class="avatar">
+  <%= user?.username ? user.username.charAt(0).toUpperCase() : '?' %>
+</div>
+      <span class="user-name"><%=user.username%></span>
+    </div>
+    <a href="/logout" class="nav-link" style="margin-left:8px;color:var(--red)"><i class="fa-solid fa-right-from-bracket"></i></a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="mode-tabs">
+    <div class="mode-tab active" onclick="switchMode('solo',this)"><i class="fa-solid fa-user"></i> Solo Practice</div>
+    <div class="mode-tab" onclick="switchMode('multi',this)"><i class="fa-solid fa-users"></i> Multiplayer Race</div>
+  </div>
+
+  <!-- SOLO PANEL -->
+  <div class="solo-panel show" id="solo-panel">
+    <div class="controls-row">
+      <div>
+        <div class="section-title">Time</div>
+        <div class="ctrl-group">
+          <button class="ctrl-btn" onclick="selectTime(15,this)">15s</button>
+          <button class="ctrl-btn active" onclick="selectTime(30,this)">30s</button>
+          <button class="ctrl-btn" onclick="selectTime(60,this)">60s</button>
+          <button class="ctrl-btn" onclick="selectTime(120,this)">120s</button>
+        </div>
+      </div>
+      <div>
+        <div class="section-title">Mode</div>
+        <div class="ctrl-group">
+          <button class="ctrl-btn active" onclick="selectTextMode('normal',this)">Normal</button>
+          <button class="ctrl-btn" onclick="selectTextMode('punctuation',this)">@ Punct.</button>
+          <button class="ctrl-btn" onclick="selectTextMode('numbers',this)"># Nums</button>
+        </div>
+      </div>
+      <div style="margin-left:auto;align-self:flex-end">
+        <button class="ctrl-btn" onclick="resetSolo()" style="border:1px solid var(--border);border-radius:10px;padding:8px 16px;color:var(--text2)"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box wpm-box"><div class="stat-lbl">WPM</div><div class="stat-val wpm" id="wpm-val">0</div><div class="stat-unit">words/min</div></div>
+      <div class="stat-box acc-box"><div class="stat-lbl">Accuracy</div><div class="stat-val acc" id="acc-val">100</div><div class="stat-unit">percent %</div></div>
+      <div class="stat-box time-box"><div class="stat-lbl">Time Left</div><div class="stat-val timer" id="time-val">30</div><div class="stat-unit">seconds</div></div>
+      <div class="stat-box keys-box"><div class="stat-lbl">Keystrokes</div><div class="stat-val keys" id="keys-val">0</div><div class="stat-unit">typed</div></div>
+    </div>
+
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+
+    <div class="type-box" id="type-box" onclick="focusSolo()">
+      <div id="text-display"></div>
+      <input type="text" id="hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <div class="type-hint"><i class="fa-regular fa-keyboard"></i> Click here or press any key to start typing</div>
+    </div>
+
+    <div class="result-panel" id="result-panel">
+      <div class="result-emoji" id="result-emoji">🎉</div>
+      <div class="result-title" id="result-title">Test Complete!</div>
+      <div class="result-sub" id="result-sub">Here are your results</div>
+      <div class="result-stats">
+        <div class="rs"><div class="rs-num" style="color:var(--accent3)" id="final-wpm">0</div><div class="rs-lbl">WPM</div></div>
+        <div class="rs"><div class="rs-num" style="color:var(--green)" id="final-acc">0%</div><div class="rs-lbl">Accuracy</div></div>
+        <div class="rs"><div class="rs-num" id="final-correct">0</div><div class="rs-lbl">Correct</div></div>
+        <div class="rs"><div class="rs-num" style="color:var(--red)" id="final-wrong">0</div><div class="rs-lbl">Errors</div></div>
+      </div>
+      <button class="btn-restart" onclick="resetSolo()">↺ Try Again</button>
+    </div>
+  </div>
+
+  <!-- MULTIPLAYER PANEL -->
+  <div class="multi-panel" id="multi-panel">
+    <div class="multi-layout">
+      <div class="room-sidebar">
+        <div class="section-title">Room</div>
+        <div class="room-actions">
+          <button class="btn-create" onclick="createRoom()"><i class="fa-solid fa-plus"></i> Create Room</button>
+          <div class="join-form">
+            <input class="join-input" id="room-code-input" placeholder="ABC123" maxlength="6">
+            <button class="btn-join" onclick="joinRoom()">Join →</button>
+          </div>
+        </div>
+
+        <div class="room-info" id="room-info">
+          <div class="section-title">Room Code</div>
+          <div class="room-code-display" id="room-code-show">------</div>
+          <div id="room-status-badge" class="room-status-badge badge-waiting"><span class="dot" style="width:6px;height:6px;border-radius:50%;background:currentColor"></span> Waiting for players</div>
+          <button class="btn-start" id="btn-start-race" onclick="startRace()"><i class="fa-solid fa-flag-checkered"></i> Start Race!</button>
+        </div>
+
+        <div class="section-title" id="players-lbl" style="display:none">Players</div>
+        <div class="players-list" id="players-list"></div>
+      </div>
+
+      <div class="race-main" style="position:relative">
+        <div class="countdown-overlay" id="countdown-overlay">
+          <div class="countdown-num" id="countdown-num">3</div>
+          <div class="countdown-msg">Get ready to race!</div>
+        </div>
+
+        <div id="race-idle" style="text-align:center;padding:60px 20px">
+          <div style="font-size:48px;margin-bottom:16px">🏎</div>
+          <div style="font-family:var(--mono);font-size:20px;font-weight:700;margin-bottom:8px">Ready to Race?</div>
+          <div style="color:var(--text2);font-size:14px">Create or join a room to start a multiplayer typing race</div>
+        </div>
+
+        <div id="race-lobby" style="display:none">
+          <div class="section-title">Race Track</div>
+          <div class="race-track-area" id="race-tracks"></div>
+          <div class="race-text-box" id="race-text-box">
+            <div class="section-title">Type this text</div>
+            <div class="type-box focused" id="race-type-box" onclick="focusRaceInput()">
+              <div id="race-text-display" style="font-family:var(--mono);font-size:18px;line-height:2;user-select:none;margin-bottom:12px"></div>
+              <input type="text" id="race-hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="opacity:0;position:absolute;height:0;width:0">
+              <div class="type-hint"><i class="fa-solid fa-bolt"></i> Race started! Type as fast as you can!</div>
+            </div>
+            <div class="stats-grid" style="margin-top:16px">
+              <div class="stat-box"><div class="stat-lbl">My WPM</div><div class="stat-val wpm" id="race-wpm">0</div></div>
+              <div class="stat-box"><div class="stat-lbl">Accuracy</div><div class="stat-val acc" id="race-acc">100</div></div>
+              <div class="stat-box"><div class="stat-lbl">Progress</div><div class="stat-val" style="color:var(--blue)" id="race-prog">0%</div></div>
+              <div class="stat-box"><div class="stat-lbl">Position</div><div class="stat-val" style="color:var(--amber)" id="race-pos">#-</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="multi-result" id="multi-result">
+          <div class="section-title" style="text-align:center;margin-bottom:20px">🏆 Race Results</div>
+          <div class="podium" id="result-podium"></div>
+          <div id="result-full-list" style="margin-bottom:20px"></div>
+          <button class="btn-new-race" onclick="leaveRace()">Play Again</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const ME = {
+  username: '<%= user?.username || "" %>',
+  id: '<%= user?.id || null %>',
+  color: '<%= user?.avatar_color || "#000" %>'
+};
+const socket = io();
+
+// ─── SOLO ──────────────────────────────────────────────────────────────────
+const TEXTS = {
+  normal:["the quick brown fox jumps over the lazy dog and races through the forest path swiftly",
+    "practice makes perfect and consistency leads to great results over time for all learners",
+    "technology is changing the world at a rapid pace every single day and we must adapt well",
+    "success comes to those who work hard and never give up on their dreams no matter what",
+    "learning new skills every day keeps the mind sharp and focused on achieving future goals",
+    "good habits built slowly become the foundation of a productive and meaningful life journey",
+    "reading books daily expands your vocabulary and sharpens your critical thinking skills"],
+  punctuation:["Practice makes perfect; keep going! Be brave—new challenges build strength.",
+    "Positivity attracts positive energy. Health is wealth; take care of yourself!",
+    "Failure teaches more than success ever will! Don't give up on your goals ever.",
+    "Gratitude turns what we have into enough. Hope is powerful; never lose it.",
+    "Love, laugh, learn—life's perfect recipe! Collaborate, don't compete always."],
+  numbers:["There are 365 days in a year and 24 hours in each day with 60 minutes each",
+    "The top 10 companies have a combined value of over 5 trillion dollars in 2024",
+    "Pi is approximately 3.14159 and is used in over 200 mathematical formulas daily",
+    "In 1969 humans first landed on the moon after a 384400 km journey from Earth",
+    "Speed of light is 299792458 meters per second which equals about 186000 miles"]
+};
+
+let soloTime=30,soloTextMode='normal',soloTimer=null,soloStarted=false;
+let soloTimeLeft=30,soloStartTs=null,soloText='';
+
+function getRandText(mode){const a=TEXTS[mode];return a[Math.floor(Math.random()*a.length)]}
+function renderText(text,typed){
+  return text.split('').map((ch,i)=>{
+    let cls='pending';
+    if(i<typed.length)cls=typed[i]===ch?'correct':'wrong';
+    else if(i===typed.length)cls='current';
+    return`<span class="${cls}">${ch===' '?'&nbsp;':ch}</span>`;
+  }).join('');
+}
+
+function initSolo(){
+  soloText=getRandText(soloTextMode);
+  document.getElementById('text-display').innerHTML=renderText(soloText,'');
+  document.getElementById('result-panel').style.display='none';
+  document.getElementById('type-box').style.display='block';
+  document.getElementById('hidden-input').value='';
+  document.getElementById('wpm-val').textContent='0';
+  document.getElementById('acc-val').textContent='100';
+  document.getElementById('time-val').textContent=soloTime;
+  document.getElementById('keys-val').textContent='0';
+  document.getElementById('prog-fill').style.width='0%';
+  soloTimeLeft=soloTime;soloStarted=false;soloStartTs=null;
+  if(soloTimer)clearInterval(soloTimer);
+}
+
+function focusSolo(){document.getElementById('hidden-input').focus()}
+function selectTime(t,btn){soloTime=t;document.querySelectorAll('.ctrl-btn').forEach(b=>{if(['15s','30s','60s','120s'].includes(b.textContent.trim()))b.classList.remove('active')});btn.classList.add('active');initSolo()}
+function selectTextMode(m,btn){soloTextMode=m;const btns=btn.parentElement.querySelectorAll('.ctrl-btn');btns.forEach(b=>b.classList.remove('active'));btn.classList.add('active');initSolo()}
+function resetSolo(){initSolo();focusSolo()}
+
+document.getElementById('hidden-input').addEventListener('input',function(){
+  const typed=this.value;
+  if(!soloStarted&&typed.length>0){
+    soloStarted=true;soloStartTs=Date.now();
+    soloTimer=setInterval(()=>{
+      soloTimeLeft--;
+      document.getElementById('time-val').textContent=soloTimeLeft;
+      document.getElementById('prog-fill').style.width=((soloTime-soloTimeLeft)/soloTime*100)+'%';
+      const wpm=calcWPM(document.getElementById('hidden-input').value,(soloTime-soloTimeLeft));
+      document.getElementById('wpm-val').textContent=wpm;
+      if(soloTimeLeft<=0){clearInterval(soloTimer);finishSolo();}
+    },1000);
+  }
+  if(!soloStarted)return;
+  const acc=calcAcc(typed,soloText);
+  document.getElementById('acc-val').textContent=acc;
+  document.getElementById('keys-val').textContent=typed.length;
+  const elapsed=(Date.now()-soloStartTs)/1000;
+  document.getElementById('wpm-val').textContent=calcWPM(typed,elapsed);
+  document.getElementById('text-display').innerHTML=renderText(soloText,typed);
+  if(typed===soloText){clearInterval(soloTimer);finishSolo();}
+});
+
+function calcWPM(typed,sec){
+  const words=typed.trim().split(/\s+/).filter(w=>w).length;
+  const min=sec/60;return min>0?Math.round(words/min):0;
+}
+function calcAcc(typed,ref){
+  if(!typed.length)return 100;
+  let ok=0;for(let i=0;i<typed.length;i++)if(typed[i]===ref[i])ok++;
+  return Math.round(ok/typed.length*100);
+}
+function calcDetails(typed,ref){
+  let ok=0,bad=0;
+  for(let i=0;i<typed.length;i++){if(typed[i]===ref[i])ok++;else bad++;}
+  return{ok,bad};
+}
+
+async function finishSolo(){
+  const typed=document.getElementById('hidden-input').value;
+  const elapsed=soloStartTs?(Date.now()-soloStartTs)/1000:soloTime;
+  const wpm=calcWPM(typed,elapsed);
+  const acc=calcAcc(typed,soloText);
+  const{ok,bad}=calcDetails(typed,soloText);
+  document.getElementById('type-box').style.display='none';
+  document.getElementById('result-panel').style.display='block';
+  document.getElementById('final-wpm').textContent=wpm;
+  document.getElementById('final-acc').textContent=acc+'%';
+  document.getElementById('final-correct').textContent=ok;
+  document.getElementById('final-wrong').textContent=bad;
+  if(wpm>=70){document.getElementById('result-emoji').textContent='🔥';document.getElementById('result-title').textContent='Blazing Fast!';document.getElementById('result-sub').textContent='You are in the top tier of typists!';}
+  else if(wpm>=50){document.getElementById('result-emoji').textContent='⚡';document.getElementById('result-title').textContent='Excellent Speed!';document.getElementById('result-sub').textContent='Above average — keep pushing!';}
+  else if(wpm>=35){document.getElementById('result-emoji').textContent='👍';document.getElementById('result-title').textContent='Good Job!';document.getElementById('result-sub').textContent='You are at average speed. Keep practicing!';}
+  else{document.getElementById('result-emoji').textContent='💪';document.getElementById('result-title').textContent='Keep Practicing!';document.getElementById('result-sub').textContent='Regular practice will improve your speed fast.';}
+  if(soloStarted){
+    try{await fetch('/api/solo-result',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wpm,accuracy:acc,correct_chars:ok,wrong_chars:bad,total_chars:typed.length,duration_seconds:Math.round(elapsed),mode:soloTextMode})});}catch(e){}
+  }
+}
+
+document.addEventListener('keydown',e=>{
+  const ip=document.getElementById('hidden-input');
+  if(document.getElementById('solo-panel').classList.contains('show')&&document.activeElement!==ip&&e.key.length===1)ip.focus();
+});
+
+// ─── MULTIPLAYER ──────────────────────────────────────────────────────────
+let currentRoom=null,isHost=false,raceText='',raceStarted=false,raceTimer=null,raceStartTs=null;
+
+function createRoom(){socket.emit('create_room')}
+function joinRoom(){
+  const code=document.getElementById('room-code-input').value.trim().toUpperCase();
+  if(code.length<4)return toast('Enter a valid room code','error');
+  socket.emit('join_room',{roomCode:code});
+}
+function startRace(){if(currentRoom)socket.emit('start_race',{roomCode:currentRoom})}
+
+socket.on('room_created',({roomCode,text})=>{
+  currentRoom=roomCode;isHost=true;raceText=text;
+  document.getElementById('room-info').style.display='block';
+  document.getElementById('room-code-show').textContent=roomCode;
+  document.getElementById('players-lbl').style.display='block';
+  document.getElementById('btn-start-race').style.display='block';
+  document.getElementById('race-idle').style.display='none';
+  document.getElementById('race-lobby').style.display='block';
+  toast('Room created: '+roomCode,'success');
+});
+
+socket.on('room_joined',({roomCode,text})=>{
+  currentRoom=roomCode;isHost=false;raceText=text;
+  document.getElementById('room-info').style.display='block';
+  document.getElementById('room-code-show').textContent=roomCode;
+  document.getElementById('players-lbl').style.display='block';
+  document.getElementById('race-idle').style.display='none';
+  document.getElementById('race-lobby').style.display='block';
+  toast('Joined room '+roomCode,'success');
+});
+
+socket.on('join_error',msg=>toast(msg,'error'));
+socket.on('error',msg=>toast(msg,'error'));
+
+socket.on('room_state',({players,hostId})=>{
+  renderPlayersList(players,hostId);
+  renderRaceTracks(players);
+  if(hostId===ME.id)document.getElementById('btn-start-race').style.display='block';
+});
+
+socket.on('players_update',players=>{
+  renderRaceTracks(players);
+  const me=players.find(p=>p.userId===ME.id);
+  if(me&&raceStarted){
+    const pos=players.filter(p=>p.finished&&p.finishPos<(me.finishPos||999)).length+1;
+    document.getElementById('race-pos').textContent='#'+pos;
+  }
+});
+
+socket.on('countdown_start',()=>{
+  document.getElementById('countdown-overlay').style.display='flex';
+  document.getElementById('race-text-box').style.display='none';
+  document.getElementById('room-status-badge').innerHTML='<span class="dot" style="width:6px;height:6px;border-radius:50%;background:currentColor"></span> Starting...';
+  document.getElementById('room-status-badge').className='room-status-badge badge-racing';
+});
+
+socket.on('countdown_tick',n=>{
+  const el=document.getElementById('countdown-num');
+  el.textContent=n>0?n:'GO!';
+  el.style.animation='none';el.offsetHeight;el.style.animation='pulse .8s ease';
+  el.style.color=n>0?'var(--amber)':'var(--green)';
+});
+
+socket.on('race_start',({text,timestamp})=>{
+  raceText=text;raceStarted=true;raceStartTs=Date.now();
+  document.getElementById('countdown-overlay').style.display='none';
+  document.getElementById('race-text-box').style.display='block';
+  document.getElementById('race-text-display').innerHTML=renderText(text,'');
+  document.getElementById('race-hidden-input').value='';
+  document.getElementById('room-status-badge').innerHTML='<span class="dot" style="width:6px;height:6px;border-radius:50%;background:currentColor;animation:blink 1s infinite"></span> Racing!';
+  focusRaceInput();
+  toast('GO! Type as fast as you can!','info');
+});
+
+socket.on('player_completed',({username,position,wpm})=>{
+  if(username!==ME.username)toast(`${username} finished #${position} — ${wpm} WPM`,'info');
+});
+
+socket.on('race_finished',({players})=>{
+  raceStarted=false;
+  document.getElementById('race-text-box').style.display='none';
+  document.getElementById('multi-result').style.display='block';
+  renderFinalResults(players);
+});
+
+socket.on('player_left',({username})=>toast(username+' left the room','error'));
+socket.on('new_host',({username})=>{if(username===ME.username){isHost=true;document.getElementById('btn-start-race').style.display='block';toast('You are now the host','info');}});
+
+document.getElementById('race-hidden-input').addEventListener('input',function(){
+  if(!raceStarted)return;
+  const typed=this.value;
+  const acc=calcAcc(typed,raceText);
+  const elapsed=(Date.now()-raceStartTs)/1000;
+  const wpm=calcWPM(typed,elapsed);
+  const prog=Math.round(typed.length/raceText.length*100);
+  document.getElementById('race-wpm').textContent=wpm;
+  document.getElementById('race-acc').textContent=acc;
+  document.getElementById('race-prog').textContent=prog+'%';
+  document.getElementById('race-text-display').innerHTML=renderText(raceText,typed);
+  if(currentRoom){
+    socket.emit('progress_update',{roomCode:currentRoom,progress:prog,wpm,accuracy:acc});
+  }
+  if(typed===raceText){
+    const finishMs=Date.now()-raceStartTs;
+    socket.emit('player_finished',{roomCode:currentRoom,wpm,accuracy:acc,finishTimeMs:finishMs});
+    this.disabled=true;
+    toast('You finished! 🎉','success');
+  }
+});
+
+function focusRaceInput(){document.getElementById('race-hidden-input').focus()}
+
+function renderPlayersList(players,hostId){
+  const el=document.getElementById('players-list');
+  el.innerHTML=players.map(p=>`
+    <div class="player-item">
+      <div class="p-avatar" style="background:${p.avatar_color||'#7c3aed'}">${p.username[0].toUpperCase()}</div>
+      <span class="p-name">${p.username}${hostId===p.userId?' <i class="fa-solid fa-crown" style="color:var(--amber);font-size:10px"></i>':''}</span>
+      ${p.userId===ME.id?'<span class="p-you">You</span>':''}
+      <span class="p-wpm">${p.wpm>0?p.wpm+' wpm':''}</span>
+    </div>`).join('');
+}
+
+const TRACK_COLORS=['#7c3aed','#10b981','#f59e0b','#3b82f6','#ef4444','#ec4899'];
+function renderRaceTracks(players){
+  const el=document.getElementById('race-tracks');
+  el.innerHTML=players.map((p,i)=>`
+    <div class="race-track">
+      <div class="track-player" title="${p.username}">${p.userId===ME.id?'<b>'+p.username+'</b>':p.username}</div>
+      <div class="track-bar">
+        <div class="track-fill" style="width:${Math.max(p.progress,2)}%;background:${TRACK_COLORS[i%6]}30;border-right:3px solid ${TRACK_COLORS[i%6]}">
+          <span style="font-size:16px;position:absolute;right:-8px">🏎</span>
+        </div>
+      </div>
+      <div class="track-wpm">${p.wpm>0?p.wpm+' wpm':'---'}</div>
+    </div>`).join('');
+}
+
+function renderFinalResults(players){
+  const sorted=[...players].sort((a,b)=>b.progress-a.progress||b.wpm-a.wpm);
+  const medals=['🥇','🥈','🥉'];
+  const podium=document.getElementById('result-podium');
+  const podiumOrder=sorted.length>=3?[sorted[1],sorted[0],sorted[2]]:sorted;
+  podium.innerHTML=podiumOrder.map((p,i)=>{
+    const rank=sorted.indexOf(p)+1;
+    const h=[70,100,50][i]||50;
+    return`<div class="podium-item podium-${rank}"><div class="podium-bar" style="height:${h}px">${medals[rank-1]||rank}</div><div class="podium-name">${p.username}</div><div class="podium-wpm">${p.wpm} wpm</div></div>`;
+  }).join('');
+  const list=document.getElementById('result-full-list');
+  list.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:14px">
+    <tr style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px"><td style="padding:8px">Pos</td><td>Player</td><td style="text-align:right">WPM</td><td style="text-align:right">Accuracy</td></tr>
+    ${sorted.map((p,i)=>`<tr style="border-top:1px solid var(--border)">
+      <td style="padding:10px 8px;font-family:var(--mono)">${medals[i]||('#'+(i+1))}</td>
+      <td><div style="display:flex;align-items:center;gap:8px"><div style="width:24px;height:24px;border-radius:50%;background:${p.avatar_color||'#7c3aed'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff">${p.username[0].toUpperCase()}</div>${p.username}${p.userId===ME.id?' <span style="font-size:10px;color:var(--accent3)">(you)</span>':''}</div></td>
+      <td style="text-align:right;font-family:var(--mono);color:var(--accent3)">${p.wpm}</td>
+      <td style="text-align:right;font-family:var(--mono);color:var(--green)">${p.accuracy}%</td>
+    </tr>`).join('')}
+  </table>`;
+}
+
+function leaveRace(){
+  currentRoom=null;isHost=false;raceStarted=false;
+  document.getElementById('room-info').style.display='none';
+  document.getElementById('players-lbl').style.display='none';
+  document.getElementById('race-idle').style.display='block';
+  document.getElementById('race-lobby').style.display='none';
+  document.getElementById('multi-result').style.display='none';
+  document.getElementById('race-text-box').style.display='none';
+  document.getElementById('players-list').innerHTML='';
+  document.getElementById('race-hidden-input').disabled=false;
+  document.getElementById('race-hidden-input').value='';
+  document.getElementById('btn-start-race').style.display='none';
+}
+
+// ─── MODE SWITCH ─────────────────────────────────────────────────────────
+function switchMode(mode,btn){
+  document.querySelectorAll('.mode-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('solo-panel').classList.toggle('show',mode==='solo');
+  document.getElementById('multi-panel').classList.toggle('show',mode==='multi');
+}
+
+// ─── TOAST ─────────────────────────────────────────────────────────────
+function toast(msg,type='info'){
+  const el=document.createElement('div');
+  el.className=`toast-item ${type}`;
+  const icons={success:'✓',error:'✗',info:'ℹ'};
+  el.innerHTML=`<span>${icons[type]||'ℹ'}</span><span>${msg}</span>`;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(()=>el.remove(),3500);
+}
+
+initSolo();
+</script>
+</body>
+</html>

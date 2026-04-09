@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TypeFun – Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0a0a0f;--surface:#12121a;--card:#1a1a26;--border:#2a2a3d;--border2:#3a3a5c;
+  --accent:#6d28d9;--accent2:#7c3aed;--accent3:#8b5cf6;--glow:rgba(109,40,217,0.2);
+  --green:#10b981;--amber:#f59e0b;--red:#ef4444;--blue:#3b82f6;
+  --text:#e8e8f0;--text2:#a0a0c0;--muted:#5a5a7a;
+  --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;opacity:0.15;z-index:0;pointer-events:none}
+
+nav{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 24px}
+.nav-inner{max-width:1200px;margin:0 auto;height:60px;display:flex;align-items:center;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-icon{width:36px;height:36px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px;color:#fff;box-shadow:0 0 16px var(--glow)}
+.logo-text{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--text)}
+.logo-text span{color:var(--accent3)}
+.nav-links{display:flex;gap:4px;margin-left:auto}
+.nav-link{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;color:var(--text2);text-decoration:none;transition:.2s;border:1px solid transparent}
+.nav-link:hover{color:var(--text);background:var(--card);border-color:var(--border)}
+.nav-link.active{color:var(--accent3);background:rgba(109,40,217,0.12);border-color:rgba(109,40,217,0.3)}
+.user-chip{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:99px;padding:5px 14px 5px 5px;margin-left:8px}
+.avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+
+.page{max-width:1200px;margin:0 auto;padding:24px;position:relative;z-index:1}
+
+.hero{background:linear-gradient(135deg,rgba(109,40,217,0.15),rgba(16,185,129,0.08));border:1px solid rgba(109,40,217,0.25);border-radius:20px;padding:28px;margin-bottom:24px;display:flex;align-items:center;gap:20px}
+.hero-avatar{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:26px;font-weight:700;color:#fff;box-shadow:0 0 24px var(--glow);flex-shrink:0}
+.hero-name{font-family:var(--mono);font-size:26px;font-weight:700;margin-bottom:4px}
+.hero-since{font-size:13px;color:var(--text2)}
+.hero-badges{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.badge{padding:4px 12px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid}
+.badge-purple{background:rgba(109,40,217,0.15);color:var(--accent3);border-color:rgba(109,40,217,0.3)}
+.badge-green{background:rgba(16,185,129,0.15);color:var(--green);border-color:rgba(16,185,129,0.3)}
+.badge-amber{background:rgba(245,158,11,0.15);color:var(--amber);border-color:rgba(245,158,11,0.3)}
+
+.dash-tabs{display:flex;background:var(--surface);border-radius:12px;padding:4px;border:1px solid var(--border);margin-bottom:24px;width:fit-content}
+.dash-tab{padding:9px 20px;border-radius:9px;font-size:14px;font-weight:500;cursor:pointer;transition:.2s;color:var(--text2);border:1px solid transparent}
+.dash-tab.active{background:var(--accent);color:#fff;box-shadow:0 0 20px var(--glow)}
+
+.stats-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px}
+.sc-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:12px}
+.sc-val{font-family:var(--mono);font-size:30px;font-weight:700;margin-bottom:4px}
+.sc-lbl{font-size:12px;color:var(--muted)}
+.sc-sub{font-size:11px;color:var(--text2);margin-top:4px}
+
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:24px}
+.chart-title{font-size:14px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.chart-title i{color:var(--accent3)}
+.chart-wrap{position:relative;height:220px}
+
+.table-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:24px}
+.table-title{font-size:14px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.table-title i{color:var(--accent3)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+td{padding:10px 12px;border-bottom:1px solid rgba(42,42,61,0.5);color:var(--text2)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(42,42,61,0.3);color:var(--text)}
+.td-wpm{font-family:var(--mono);color:var(--accent3)!important;font-weight:700}
+.td-acc{font-family:var(--mono);color:var(--green)!important}
+.td-pos1{font-family:var(--mono);color:var(--amber)!important}
+.empty-state{text-align:center;padding:48px;color:var(--muted)}
+.empty-state i{font-size:36px;margin-bottom:12px;display:block}
+
+.section{display:none}
+.section.show{display:block}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<nav>
+  <div class="nav-inner">
+    <a href="/play" class="logo"><div class="logo-icon">TF</div><div class="logo-text">Type<span>Fun</span></div></a>
+    <div class="nav-links">
+      <a href="/play" class="nav-link"><i class="fa-solid fa-keyboard"></i> Play</a>
+      <a href="/dashboard" class="nav-link active"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+      <a href="/leaderboard" class="nav-link"><i class="fa-solid fa-trophy"></i> Leaderboard</a>
+    </div>
+    <div class="user-chip" style="margin-left:auto">
+      <div class="avatar" style="background:<%= user.avatar_color %>;"><%= user.username[0].toUpperCase() %></div>
+      <span style="font-size:13px;font-weight:500"><%=user.username%></span>
+    </div>
+    <a href="/logout" class="nav-link" style="margin-left:8px;color:var(--red)"><i class="fa-solid fa-right-from-bracket"></i></a>
+  </div>
+</nav>
+
+<%
+  /* ── Parse all PostgreSQL numeric strings up front ── */
+  var ss = soloStats  || {};
+  var rs = raceStats  || {};
+
+  var bestWpm     = parseFloat(ss.best_wpm)  || 0;
+  var avgWpm      = parseFloat(ss.avg_wpm)   || 0;
+  var avgAcc      = parseFloat(ss.avg_acc)   || 0;
+  var totalTests  = parseInt(ss.total_tests) || 0;
+
+  var raceWins    = parseInt(rs.wins)        || 0;
+  var totalRaces  = parseInt(rs.total_races) || 0;
+  var bestRaceWpm = parseFloat(rs.best_wpm)  || 0;
+  var winRate     = totalRaces > 0 ? Math.round(raceWins / totalRaces * 100) : 0;
+%>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-avatar" style="background:<%=user.avatar_color%>"><%=user.username[0].toUpperCase()%></div>
+    <div>
+      <div class="hero-name"><%=user.username%></div>
+      <div class="hero-since"><i class="fa-regular fa-calendar"></i> Member since <%=new Date().getFullYear()%></div>
+      <div class="hero-badges">
+        <% if(bestWpm >= 80){ %><span class="badge badge-amber">⚡ Speed Demon</span><% } %>
+        <% if(totalTests >= 10){ %><span class="badge badge-green">🎯 Dedicated Typist</span><% } %>
+        <% if(raceWins >= 1){ %><span class="badge badge-purple">🏆 Race Winner</span><% } %>
+        <% if(avgAcc >= 95){ %><span class="badge badge-green">✓ High Accuracy</span><% } %>
+        <span class="badge badge-purple">⌨ TypeFun Member</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="dash-tabs">
+    <div class="dash-tab active" onclick="switchTab('solo',this)"><i class="fa-solid fa-user"></i> Solo Stats</div>
+    <div class="dash-tab" onclick="switchTab('multi',this)"><i class="fa-solid fa-users"></i> Multiplayer Stats</div>
+  </div>
+
+  <!-- SOLO SECTION -->
+  <div class="section show" id="tab-solo">
+    <div class="stats-grid-4">
+      <div class="stat-card">
+        <div class="sc-icon" style="background:rgba(109,40,217,0.15)"><i class="fa-solid fa-bolt" style="color:var(--accent3)"></i></div>
+        <div class="sc-val" style="color:var(--accent3)"><%=Math.round(bestWpm)%></div>
+        <div class="sc-lbl">Best WPM</div>
+        <div class="sc-sub">Personal record</div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-icon" style="background:rgba(16,185,129,0.15)"><i class="fa-solid fa-chart-line" style="color:var(--green)"></i></div>
+        <div class="sc-val" style="color:var(--green)"><%=Math.round(avgWpm)%></div>
+        <div class="sc-lbl">Average WPM</div>
+        <div class="sc-sub">All time average</div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-icon" style="background:rgba(245,158,11,0.15)"><i class="fa-solid fa-crosshairs" style="color:var(--amber)"></i></div>
+        <div class="sc-val" style="color:var(--amber)"><%=Math.round(avgAcc)%>%</div>
+        <div class="sc-lbl">Avg Accuracy</div>
+        <div class="sc-sub">Typing precision</div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-icon" style="background:rgba(59,130,246,0.15)"><i class="fa-solid fa-list-check" style="color:var(--blue)"></i></div>
+        <div class="sc-val" style="color:var(--blue)"><%=totalTests%></div>
+        <div class="sc-lbl">Total Tests</div>
+        <div class="sc-sub">Practice sessions</div>
+      </div>
+    </div>
+
+    <% if(soloResults && soloResults.length > 0) { %>
+    <div class="chart-card">
+      <div class="chart-title"><i class="fa-solid fa-chart-area"></i> WPM Progress (last 20 tests)</div>
+      <div class="chart-wrap"><canvas id="wpmChart"></canvas></div>
+    </div>
+    <% } %>
+
+    <div class="table-card">
+      <div class="table-title"><i class="fa-solid fa-clock-rotate-left"></i> Recent Tests</div>
+      <% if(soloResults && soloResults.length > 0) { %>
+      <table>
+        <thead><tr><th>#</th><th>WPM</th><th>Accuracy</th><th>Duration</th><th>Mode</th><th>Date</th></tr></thead>
+        <tbody>
+        <% soloResults.forEach(function(r, i) { %>
+        <tr>
+          <td><%=i+1%></td>
+          <td class="td-wpm"><%=parseInt(r.wpm) || 0%></td>
+          <td class="td-acc"><%=Math.round(parseFloat(r.accuracy) || 0)%>%</td>
+          <td><%=parseInt(r.duration_seconds) || 0%>s</td>
+          <td><span style="padding:2px 8px;border-radius:6px;font-size:11px;background:rgba(109,40,217,0.15);color:var(--accent3)"><%=r.mode || 'normal'%></span></td>
+          <td><%=r.created_at ? new Date(r.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '-'%></td>
+        </tr>
+        <% }) %>
+        </tbody>
+      </table>
+      <% } else { %>
+      <div class="empty-state"><i class="fa-regular fa-keyboard"></i><div>No solo tests yet</div><div style="font-size:13px;margin-top:4px"><a href="/play" style="color:var(--accent3)">Start practicing →</a></div></div>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- MULTI SECTION -->
+  <div class="section" id="tab-multi">
+    <div class="stats-grid-4">
+      <div class="stat-card">
+        <div class="sc-icon" style="background:rgba(245,158,11,0.15)"><i class="fa-solid fa-trophy" style="color:var(--amber)"></i></div>
+        <div class="sc-val" style="color:var(--amber)"><%=raceWins%></div>
+        <div class="sc-lbl">Race Wins</div>
+        <div class="sc-sub">First place finishes</div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-icon" style="background:rgba(239,68,68,0.15)"><i class="fa-solid fa-flag-checkered" style="color:var(--red)"></i></div>
+        <div class="sc-val" style="color:var(--red)"><%=totalRaces%></div>
+        <div class="sc-lbl">Total Races</div>
+        <div class="sc-sub">Multiplayer games</div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-icon" style="background:rgba(109,40,217,0.15)"><i class="fa-solid fa-bolt" style="color:var(--accent3)"></i></div>
+        <div class="sc-val" style="color:var(--accent3)"><%=Math.round(bestRaceWpm)%></div>
+        <div class="sc-lbl">Best Race WPM</div>
+        <div class="sc-sub">Under pressure</div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-icon" style="background:rgba(16,185,129,0.15)"><i class="fa-solid fa-percent" style="color:var(--green)"></i></div>
+        <div class="sc-val" style="color:var(--green)"><%=winRate%>%</div>
+        <div class="sc-lbl">Win Rate</div>
+        <div class="sc-sub">Victories / total races</div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-title"><i class="fa-solid fa-ranking-star"></i> Recent Race History</div>
+      <% if(raceResults && raceResults.length > 0) { %>
+      <table>
+        <thead><tr><th>Position</th><th>WPM</th><th>Accuracy</th><th>Finish Time</th><th>Date</th></tr></thead>
+        <tbody>
+        <% raceResults.forEach(function(r) {
+          var pos        = parseInt(r.finish_position) || 0;
+          var finishSec  = parseFloat(r.finish_time_seconds);
+          var raceDate   = r.race_date || r.created_at;
+        %>
+        <tr>
+          <td class="td-pos1">
+            <% if(pos === 1){ %>🥇 1st
+            <% } else if(pos === 2){ %>🥈 2nd
+            <% } else if(pos === 3){ %>🥉 3rd
+            <% } else if(pos > 3){ %>#<%=pos%>
+            <% } else { %>-<% } %>
+          </td>
+          <td class="td-wpm"><%=parseInt(r.wpm) || 0%></td>
+          <td class="td-acc"><%=Math.round(parseFloat(r.accuracy) || 0)%>%</td>
+          <td style="font-family:var(--mono);font-size:12px"><%=!isNaN(finishSec) ? finishSec.toFixed(1)+'s' : 'DNF'%></td>
+          <td><%=raceDate ? new Date(raceDate).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '-'%></td>
+        </tr>
+        <% }) %>
+        </tbody>
+      </table>
+      <% } else { %>
+      <div class="empty-state"><i class="fa-solid fa-users"></i><div>No races yet</div><div style="font-size:13px;margin-top:4px"><a href="/play" style="color:var(--accent3)">Start a race →</a></div></div>
+      <% } %>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// @ts-nocheck
+function switchTab(tab,btn){
+  document.querySelectorAll('.dash-tab').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.section').forEach(function(s){ s.classList.remove('show'); });
+  document.getElementById('tab-'+tab).classList.add('show');
+}
+
+<% if(soloResults && soloResults.length > 0) { %>
+<%
+  var chartData = [];
+  for(var ci = soloResults.length - 1; ci >= 0; ci--) {
+    chartData.push({
+      wpm: parseInt(soloResults[ci].wpm) || 0,
+      acc: parseFloat(soloResults[ci].accuracy) || 0
+    });
+  }
+%>
+var wpmData = <%- JSON.stringify(chartData) %>;
+var ctx = document.getElementById('wpmChart').getContext('2d');
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: wpmData.map(function(_, i){ return 'Test ' + (i + 1); }),
+    datasets: [{
+      label: 'WPM',
+      data: wpmData.map(function(d){ return d.wpm; }),
+      borderColor: '#8b5cf6',
+      backgroundColor: 'rgba(139,92,246,0.1)',
+      tension: 0.4,
+      fill: true,
+      pointBackgroundColor: '#8b5cf6',
+      pointRadius: 4,
+      borderWidth: 2,
+      yAxisID: 'y'
+    },{
+      label: 'Accuracy %',
+      data: wpmData.map(function(d){ return d.acc; }),
+      borderColor: '#10b981',
+      backgroundColor: 'rgba(16,185,129,0.05)',
+      tension: 0.4,
+      fill: false,
+      pointBackgroundColor: '#10b981',
+      pointRadius: 4,
+      borderWidth: 2,
+      borderDash: [4,4],
+      yAxisID: 'y1'
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#a0a0c0', font: { size: 12 } } } },
+    scales: {
+      x: { ticks: { color: '#5a5a7a', font: { size: 11 } }, grid: { color: 'rgba(42,42,61,0.5)' } },
+      y: { ticks: { color: '#8b5cf6' }, grid: { color: 'rgba(42,42,61,0.5)' }, title: { display: true, text: 'WPM', color: '#8b5cf6' } },
+      y1: { position: 'right', ticks: { color: '#10b981' }, grid: { display: false }, title: { display: true, text: 'Accuracy %', color: '#10b981' }, min: 0, max: 100 }
+    }
+  }
+});
+<% } %>
+</script>
+</body>
+</html>
