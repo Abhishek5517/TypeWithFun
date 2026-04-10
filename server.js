@@ -23,6 +23,11 @@ app.use(express.urlencoded({ extended: true }));
 
 app.set('trust proxy', 1);
 
+let isProd = false;
+if (process.env.NODE_ENV === 'production') {
+  isProd = true;
+}
+
 const sessionMiddleware = session({
   store: new pgSession({
     pool: db,
@@ -32,7 +37,7 @@ const sessionMiddleware = session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false,
+    secure: isProd,
     httpOnly: true,
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000
