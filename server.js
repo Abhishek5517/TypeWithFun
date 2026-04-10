@@ -43,9 +43,7 @@ const sessionMiddleware = session({
     maxAge: 7 * 24 * 60 * 60 * 1000
   }
 });
-if (process.env.NODE_ENV === 'production') {
-  sessionMiddleware.cookie.secure = true;
-}
+
 app.use(sessionMiddleware);
 
 io.use((socket, next) => {
