@@ -39,7 +39,7 @@ const sessionMiddleware = session({
   }
 });
 if (process.env.NODE_ENV === 'production') {
-  sessionConfig.cookie.secure = true;
+  sessionMiddleware.cookie.secure = true;
 }
 app.use(sessionMiddleware);
 
