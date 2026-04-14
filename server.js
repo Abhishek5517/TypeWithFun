@@ -50,19 +50,44 @@ io.use((socket, next) => {
   sessionMiddleware(socket.request, {}, next);
 });
 
-// ─── Typing texts ───────────────────────────────────────────────────────────
-const TYPING_TEXTS = [
-  "The quick brown fox jumps over the lazy dog and races through the forest path swiftly.",
-  "Practice makes perfect and consistency leads to great results over time for all learners.",
-  "Technology is changing the world at a rapid pace every single day and we must adapt well.",
-  "Success comes to those who work hard and never give up on their dreams no matter what.",
-  "Learning new skills every day keeps the mind sharp and focused on achieving future goals.",
-  "Good habits built slowly become the foundation of a productive and meaningful life journey.",
-  "Reading books daily expands your vocabulary and sharpens your critical thinking skills.",
-  "The best way to predict the future is to create it yourself through hard work and vision.",
-  "Small daily improvements over time lead to stunning results that surprise even the achiever.",
-  "Focus on progress not perfection and you will achieve great things in your lifetime ahead."
+// ─── Word bank for race text generation ──────────────────────────────────────
+const WORD_BANK = [
+  'the','be','to','of','and','a','in','that','have','it','for','not','on','with',
+  'he','as','you','do','at','this','but','his','by','from','they','we','say','her',
+  'she','or','an','will','my','one','all','would','there','their','what','so','up',
+  'out','if','about','who','get','which','go','me','when','make','can','like','time',
+  'no','just','him','know','take','people','into','year','your','good','some','could',
+  'them','see','other','than','then','now','look','only','come','its','over','think',
+  'also','back','after','use','two','how','our','work','first','well','way','even',
+  'new','want','because','any','these','give','day','most','us','great','between',
+  'need','large','often','hand','high','place','hold','turn','were','said','each',
+  'tell','does','set','three','air','put','end','why','again','off','play','small',
+  'number','always','move','live','show','try','around','another','home','old',
+  'world','life','few','open','seem','together','next','white','begin','got','walk',
+  'paper','group','music','both','mark','book','letter','until','mile','river','car',
+  'feet','care','second','enough','eat','face','watch','far','real','almost','let',
+  'above','girl','sometimes','mountain','cut','young','talk','soon','list','song',
+  'leave','family','body','light','voice','power','town','fine','drive','short',
+  'road','true','common','stop','once','hear','sure','four','head','black','force',
+  'near','since','plan','figure','star','box','field','rest','able','done','beauty',
+  'front','teach','week','final','green','quick','develop','ocean','warm','free',
+  'minute','strong','special','clear','produce','fact','street','inch','lot',
+  'course','stay','wheel','full','blue','object','decide','surface','deep','moon',
+  'island','foot','yet','busy','test','record','boat','gold','possible','plane',
+  'age','dry','wonder','laugh','thousand','ago','ran','check','game','shape',
+  'bring','paint','language','among','point','form','stand','own','page','should',
+  'country','found','still','learn','plant','cover','food','sun','simple','mind',
+  'love','cause','rain','wall','catch','wish','drop','ground','stop','build'
 ];
+
+function generateRaceText(wordCount) {
+  wordCount = wordCount || 40;
+  const words = [];
+  for (let i = 0; i < wordCount; i++) {
+    words.push(WORD_BANK[Math.floor(Math.random() * WORD_BANK.length)]);
+  }
+  return words.join(' ');
+}
 
 function generateRoomCode() {
   return Math.random().toString(36).substr(2, 6).toUpperCase();
@@ -232,7 +257,7 @@ io.on('connection', (socket) => {
   socket.on('create_room', async () => {
     if (!user) return socket.emit('error', 'Not authenticated');
     const roomCode = generateRoomCode();
-    const text = TYPING_TEXTS[Math.floor(Math.random() * TYPING_TEXTS.length)];
+    const text = generateRaceText(40);
     try {
       const result = await db.query(
         'INSERT INTO rooms (room_code, host_user_id, text_content) VALUES ($1, $2, $3) RETURNING id',
@@ -330,6 +355,51 @@ io.on('connection', (socket) => {
     if (allDone) endRace(roomCode);
     else if (player.finishPos === 1) {
       setTimeout(() => endRace(roomCode), 30000);
+    }
+  });
+
+  socket.on('reset_room', async ({ roomCode }) => {
+    const room = activeRooms.get(roomCode);
+    if (!room || room.hostId !== user?.id) return socket.emit('error', 'Only the host can restart the race');
+
+    const newText = generateRaceText(40);
+    room.text = newText;
+    room.status = 'waiting';
+    room.raceStartTime = null;
+    if (room.countdownTimer) { clearInterval(room.countdownTimer); room.countdownTimer = null; }
+
+    room.players.forEach(p => {
+      p.progress = 0; p.wpm = 0; p.accuracy = 100;
+      p.finished = false; p.finishPos = 0;
+    });
+
+    try {
+      await db.query(
+        'UPDATE rooms SET status = $1, text_content = $2, finished_at = NULL WHERE id = $3',
+        ['waiting', newText, room.id]
+      );
+    } catch (e) { console.error('reset_room db error:', e.message); }
+
+    io.to(roomCode).emit('room_reset', { text: newText });
+    broadcastRoomState(roomCode);
+  });
+
+  socket.on('leave_room', ({ roomCode }) => {
+    const room = activeRooms.get(roomCode);
+    if (!room || !room.players.has(socket.id)) return;
+    const player = room.players.get(socket.id);
+    room.players.delete(socket.id);
+    socket.leave(roomCode);
+    io.to(roomCode).emit('player_left', { username: player.username });
+    if (room.players.size === 0) {
+      activeRooms.delete(roomCode);
+    } else {
+      if (room.hostId === player.userId) {
+        const first = room.players.values().next().value;
+        room.hostId = first.userId;
+        io.to(roomCode).emit('new_host', { username: first.username, userId: first.userId });
+      }
+      broadcastRoomState(roomCode);
     }
   });
 

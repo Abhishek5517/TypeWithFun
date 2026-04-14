@@ -79,17 +79,17 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.9);backdrop-fil
 #text-display{font-family:var(--mono);font-size:20px;line-height:2;letter-spacing:.3px;user-select:none;min-height:120px;margin-bottom:16px;word-break:break-word}
 #text-display span.correct{color:var(--green)}
 #text-display span.wrong{color:var(--red);text-decoration:underline;text-underline-offset:4px}
-#text-display span.current{border-bottom:2.5px solid var(--accent3);color:var(--text);animation:blink 1s infinite}
+#text-display span.current{border-left:2px solid var(--accent3);margin-left:-1px;color:var(--text);animation:caretBlink .8s ease infinite}
 #text-display span.pending{color:var(--muted)}
 
 /* Race text display — same styling as solo */
 #race-text-display{font-family:var(--mono);font-size:18px;line-height:2;letter-spacing:.3px;user-select:none;min-height:100px;margin-bottom:12px;word-break:break-word}
 #race-text-display span.correct{color:var(--green)}
 #race-text-display span.wrong{color:var(--red);text-decoration:underline;text-underline-offset:4px}
-#race-text-display span.current{border-bottom:2.5px solid var(--accent3);color:var(--text);animation:blink 1s infinite}
+#race-text-display span.current{border-left:2px solid var(--accent3);margin-left:-1px;color:var(--text);animation:caretBlink .8s ease infinite}
 #race-text-display span.pending{color:var(--muted)}
 
-@keyframes blink{0%,100%{border-color:var(--accent3)}50%{border-color:transparent}}
+@keyframes caretBlink{0%,100%{border-left-color:var(--accent3)}50%{border-left-color:transparent}}
 #hidden-input{opacity:0;position:absolute;height:0;width:0;pointer-events:none}
 .type-hint{font-size:13px;color:var(--muted);border-top:1px solid var(--border);padding-top:12px;display:flex;align-items:center;gap:8px}
 .type-hint i{font-size:14px}
@@ -316,11 +316,12 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.9);backdrop-fil
                 style="opacity:0;position:absolute;height:0;width:0;pointer-events:none">
               <div class="type-hint"><i class="fa-solid fa-bolt"></i> Race started! Type as fast as you can!</div>
             </div>
-            <div class="stats-grid" style="margin-top:16px">
+            <div class="stats-grid" style="margin-top:16px;grid-template-columns:repeat(5,1fr)">
               <div class="stat-box"><div class="stat-lbl">My WPM</div><div class="stat-val wpm" id="race-wpm">0</div></div>
               <div class="stat-box"><div class="stat-lbl">Accuracy</div><div class="stat-val acc" id="race-acc">100</div></div>
               <div class="stat-box"><div class="stat-lbl">Progress</div><div class="stat-val" style="color:var(--blue)" id="race-prog">0%</div></div>
               <div class="stat-box"><div class="stat-lbl">Position</div><div class="stat-val" style="color:var(--amber)" id="race-pos">#-</div></div>
+              <div class="stat-box time-box"><div class="stat-lbl">Time</div><div class="stat-val timer" id="race-time">0:00</div><div class="stat-unit">elapsed</div></div>
             </div>
           </div>
         </div>
@@ -329,7 +330,10 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.9);backdrop-fil
           <div class="section-title" style="text-align:center;margin-bottom:20px">🏆 Race Results</div>
           <div class="podium" id="result-podium"></div>
           <div id="result-full-list" style="margin-bottom:20px"></div>
-          <button class="btn-new-race" onclick="leaveRace()">Play Again</button>
+          <div style="display:flex;gap:10px;justify-content:center">
+            <button class="btn-new-race" onclick="restartRace()"><i class="fa-solid fa-rotate-right"></i> Play Again</button>
+            <button class="btn-new-race" onclick="leaveRace()" style="background:var(--surface);border:1px solid var(--border);color:var(--text2)"><i class="fa-solid fa-right-from-bracket"></i> Leave Room</button>
+          </div>
         </div>
       </div>
     </div>
@@ -347,30 +351,72 @@ var ME = {
 };
 var socket = io();
 
-// ─── TEXTS ────────────────────────────────────────────────────────────────
-var TEXTS = {
-  normal:[
-    "The quick brown fox jumps over the lazy dog. A journey of a thousand miles begins with a single step. The best time to plant a tree was twenty years ago, and the second best time is now. Success is not final, failure is not fatal — it is the courage to continue that counts. Every day is a new opportunity to grow, to learn, and to become a better version of yourself.",
-    "Technology is rapidly changing the world around us. Machines can now think, learn, and adapt in ways that seemed impossible just a decade ago. Artificial intelligence is transforming industries from healthcare to finance, and the pace of change shows no sign of slowing down. Those who embrace learning and adaptability will thrive in this new era of innovation and progress.",
-    "Reading is one of the most powerful habits you can develop. Books open doors to new worlds, new ideas, and new perspectives that you would never encounter in your daily life. Whether you prefer fiction or nonfiction, every book you read adds to your knowledge and understanding of the world. Make reading a daily habit and watch how your thinking transforms over time.",
-    "Consistency is the key to mastery. It is not the person who works the hardest on a single day who achieves greatness, but the person who shows up every single day and puts in the effort. Small improvements compound over time into remarkable results. Focus on the process rather than the outcome, and the outcomes will follow naturally as a byproduct of your dedication.",
-    "The human mind is capable of extraordinary things when it is focused and disciplined. Meditation, exercise, and deep work are three habits that can dramatically improve your cognitive performance. By training your attention and managing your energy wisely, you can accomplish in a few focused hours what most people fail to achieve in an entire day of distracted effort."
-  ],
-  punctuation:[
-    "Wait — are you sure? Yes, I'm absolutely certain! The results were: 92%, 87%, and 95% respectively. Dr. Smith said, 'This is unprecedented.' However, we must proceed carefully; the risks are significant. First: gather data. Second: analyze results. Third: publish findings. It's a long road ahead, but we'll get there — one step at a time!",
-    "She asked, 'What time does the train leave?' He replied: 'At 7:45 — don't be late!' The schedule read as follows: Monday (morning), Tuesday (afternoon), and Wednesday (evening). It's worth noting that 3 out of 5 experts disagreed. 'Fascinating,' she said quietly. The report — over 200 pages long — covered everything from A to Z.",
-    "Dear Mr. Johnson: Thank you for your letter dated March 3rd. We've reviewed your proposal; unfortunately, it doesn't meet our current requirements. However — and this is important — we'd love to revisit this in Q2. Please send your updated documents (PDF format only) to: info@company.com. Best regards, The Team. P.S. Don't forget the deadline!",
-    "The equation was simple: success = effort x consistency. But wait — there's more to it! Factors like mindset (growth vs. fixed), environment, and support networks all play crucial roles. Consider this: 80% of outcomes come from 20% of efforts. That's Pareto's principle! So, focus on what matters most — and let go of the rest. Simple? Yes. Easy? No.",
-    "Life is what happens when you're busy making other plans. Think about it — deeply. Every moment counts: every choice, every word, every action. Are you living intentionally? Or just reacting? Here's a challenge: for 30 days, write down three things you're grateful for. The results will surprise you — guaranteed!"
-  ],
-  numbers:[
-    "In 2024, global internet users surpassed 5.4 billion, representing 67% of the world's 8.1 billion population. Mobile devices account for approximately 58.67% of all web traffic. The average person spends 6 hours and 37 minutes online daily. By 2030, there will be over 29.4 billion connected IoT devices. Data generated per day exceeds 2.5 quintillion bytes — that is 2500000 terabytes.",
-    "The speed of light is 299792458 meters per second, or approximately 186000 miles per second. Light from the Sun takes about 8 minutes and 20 seconds to reach Earth, traveling 149.6 million kilometers. The Milky Way galaxy is 100000 light-years across and contains between 100 to 400 billion stars. The observable universe spans 93 billion light-years in diameter.",
-    "Mount Everest stands at 8848.86 meters above sea level. The Mariana Trench reaches a depth of 11034 meters. The Amazon River discharges 209000 cubic meters of water per second. Lake Baikal holds approximately 23615 cubic kilometers of water — about 20% of Earth's unfrozen surface fresh water. The Sahara Desert covers 9200000 square kilometers across 11 countries.",
-    "The human body contains approximately 37.2 trillion cells and 206 bones. The heart beats around 100000 times per day, pumping 5 liters of blood per minute. There are roughly 86 billion neurons in the brain, connected by over 100 trillion synapses. DNA in a single cell, if uncoiled, would stretch about 2 meters. The human genome contains approximately 3.2 billion base pairs.",
-    "World War II lasted from 1939 to 1945 — exactly 6 years. It involved over 30 countries and resulted in an estimated 70 to 85 million fatalities. The United States dropped atomic bombs on Hiroshima on August 6 1945, and Nagasaki on August 9 1945. The Manhattan Project cost approximately 2 billion dollars. The war ended on September 2 1945 when Japan signed the surrender."
-  ]
-};
+// ─── WORD BANK ────────────────────────────────────────────────────────────
+var WORD_BANK = [
+  'the','be','to','of','and','a','in','that','have','it','for','not','on','with',
+  'he','as','you','do','at','this','but','his','by','from','they','we','say','her',
+  'she','or','an','will','my','one','all','would','there','their','what','so','up',
+  'out','if','about','who','get','which','go','me','when','make','can','like','time',
+  'no','just','him','know','take','people','into','year','your','good','some','could',
+  'them','see','other','than','then','now','look','only','come','its','over','think',
+  'also','back','after','use','two','how','our','work','first','well','way','even',
+  'new','want','because','any','these','give','day','most','us','great','between',
+  'need','large','often','hand','high','place','hold','turn','were','said','each',
+  'tell','does','set','three','air','put','end','why','again','off','play','small',
+  'number','always','move','live','show','try','around','another','home','old',
+  'world','life','few','open','seem','together','next','white','begin','got','walk',
+  'paper','group','music','both','mark','book','letter','until','mile','river','car',
+  'feet','care','second','enough','eat','face','watch','far','real','almost','let',
+  'above','girl','sometimes','mountain','cut','young','talk','soon','list','song',
+  'leave','family','body','light','voice','power','town','fine','drive','short',
+  'road','true','common','stop','once','hear','sure','four','head','black','force',
+  'near','since','plan','figure','star','box','field','rest','able','done','beauty',
+  'front','teach','week','final','green','quick','develop','ocean','warm','free',
+  'minute','strong','special','clear','tail','produce','fact','street','inch','lot',
+  'course','stay','wheel','full','blue','object','decide','surface','deep','moon',
+  'island','foot','yet','busy','test','record','boat','gold','possible','plane',
+  'age','dry','wonder','laugh','thousand','ago','ran','check','game','shape',
+  'bring','paint','language','among','point','form','stand','own','page','should',
+  'country','found','still','learn','plant','cover','food','sun','four','between',
+  'state','never','became','side','cry','check','simple','cell','paint','mind',
+  'love','cause','rain','exercise','wall','catch','mount','wish','drop','ground'
+];
+
+var NUM_BANK = [
+  '42','100','256','1024','7','13','99','365','1000','2048',
+  '3','16','64','512','8','24','48','128','200','500'
+];
+
+var PUNCT_PAIRS = [
+  [', ',' '],['! ',' '],['? ',' '],['... ',' '],['— ',' '],['; ',' ']
+];
+
+function generateWords(count, mode) {
+  var words = [];
+  for (var i = 0; i < count; i++) {
+    if (mode === 'numbers' && Math.random() < 0.22) {
+      words.push(NUM_BANK[Math.floor(Math.random() * NUM_BANK.length)]);
+    } else {
+      words.push(WORD_BANK[Math.floor(Math.random() * WORD_BANK.length)]);
+    }
+  }
+  if (mode === 'punctuation') {
+    var result = '';
+    for (var j = 0; j < words.length; j++) {
+      result += words[j];
+      if (j < words.length - 1) {
+        if (Math.random() < 0.18) {
+          var p = PUNCT_PAIRS[Math.floor(Math.random() * PUNCT_PAIRS.length)];
+          result += p[0];
+        } else {
+          result += ' ';
+        }
+      }
+    }
+    return result;
+  }
+  return words.join(' ');
+}
 
 // ─── SOLO STATE ───────────────────────────────────────────────────────────
 var soloTime = 30;
@@ -429,12 +475,11 @@ function calcDetails(typed, ref) {
 
 // ─── SOLO FUNCTIONS ───────────────────────────────────────────────────────
 function getShuffledTexts(mode) {
-  var arr = TEXTS[mode].slice();
-  for (var i = arr.length - 1; i > 0; i--) {
-    var j = Math.floor(Math.random() * (i + 1));
-    var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  var chunks = [];
+  for (var i = 0; i < 5; i++) {
+    chunks.push(generateWords(30, mode));
   }
-  return arr;
+  return chunks;
 }
 
 function updateChunkDots() {
@@ -631,12 +676,18 @@ var isHost = false;
 var raceText = '';
 var raceStarted = false;
 var raceStartTs = null;
+var raceTimer = null;
+var raceElapsed = 0;
 
-function createRoom() { socket.emit('create_room'); }
+function createRoom() {
+  if (currentRoom) socket.emit('leave_room', { roomCode: currentRoom });
+  socket.emit('create_room');
+}
 
 function joinRoom() {
   var code = document.getElementById('room-code-input').value.trim().toUpperCase();
   if (code.length < 4) return toast('Enter a valid room code', 'error');
+  if (currentRoom) socket.emit('leave_room', { roomCode: currentRoom });
   socket.emit('join_room', { roomCode: code });
 }
 
@@ -726,8 +777,19 @@ socket.on('race_start', function(data) {
   document.getElementById('race-acc').textContent = '100';
   document.getElementById('race-prog').textContent = '0%';
   document.getElementById('race-pos').textContent = '#-';
+  document.getElementById('race-time').textContent = '0:00';
 
-  document.getElementById('room-status-badge').innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;animation:blink 1s infinite"></span> Racing!';
+  // Start elapsed timer
+  if (raceTimer) clearInterval(raceTimer);
+  raceElapsed = 0;
+  raceTimer = setInterval(function() {
+    raceElapsed++;
+    var m = Math.floor(raceElapsed / 60);
+    var s = raceElapsed % 60;
+    document.getElementById('race-time').textContent = m + ':' + (s < 10 ? '0' : '') + s;
+  }, 1000);
+
+  document.getElementById('room-status-badge').innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;animation:caretBlink .8s ease infinite"></span> Racing!';
 
   focusRaceInput();
   toast('GO! Type as fast as you can!', 'info');
@@ -741,12 +803,33 @@ socket.on('player_completed', function(data) {
 
 socket.on('race_finished', function(data) {
   raceStarted = false;
+  if (raceTimer) { clearInterval(raceTimer); raceTimer = null; }
   document.getElementById('race-text-box').style.display = 'none';
   document.getElementById('multi-result').style.display = 'block';
   renderFinalResults(data.players);
 });
 
 socket.on('player_left', function(data) { toast(data.username + ' left the room', 'error'); });
+
+socket.on('room_reset', function(data) {
+  raceText = data.text;
+  raceStarted = false;
+  raceStartTs = null;
+  if (raceTimer) { clearInterval(raceTimer); raceTimer = null; }
+  raceElapsed = 0;
+  document.getElementById('race-time').textContent = '0:00';
+  document.getElementById('multi-result').style.display = 'none';
+  document.getElementById('race-text-box').style.display = 'none';
+  document.getElementById('countdown-overlay').style.display = 'none';
+  document.getElementById('race-lobby').style.display = 'block';
+  document.getElementById('race-hidden-input').disabled = false;
+  document.getElementById('race-hidden-input').value = '';
+  document.getElementById('race-text-display').innerHTML = '';
+  document.getElementById('room-status-badge').innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block"></span> Waiting for players';
+  document.getElementById('room-status-badge').className = 'room-status-badge badge-waiting';
+  if (isHost) document.getElementById('btn-start-race').style.display = 'block';
+  toast('Race reset! Host can start a new race.', 'info');
+});
 
 socket.on('new_host', function(data) {
   if (data.username === ME.username) {
@@ -871,6 +954,9 @@ function renderFinalResults(players) {
 }
 
 function leaveRace() {
+  if (currentRoom) socket.emit('leave_room', { roomCode: currentRoom });
+  if (raceTimer) { clearInterval(raceTimer); raceTimer = null; }
+  raceElapsed = 0;
   currentRoom = null; isHost = false; raceStarted = false;
   document.getElementById('room-info').style.display = 'none';
   document.getElementById('players-lbl').style.display = 'none';
@@ -883,6 +969,14 @@ function leaveRace() {
   document.getElementById('race-hidden-input').value = '';
   document.getElementById('race-text-display').innerHTML = '';
   document.getElementById('btn-start-race').style.display = 'none';
+}
+
+function restartRace() {
+  if (isHost) {
+    socket.emit('reset_room', { roomCode: currentRoom });
+  } else {
+    toast('Waiting for the host to restart the race...', 'info');
+  }
 }
 
 // ─── MODE SWITCH ──────────────────────────────────────────────────────────
