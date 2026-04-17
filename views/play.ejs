@@ -51,6 +51,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.9);backdrop-fil
 .ctrl-btn:last-child{border-right:none}
 .ctrl-btn:hover{color:var(--text);background:var(--card)}
 .ctrl-btn.active{background:var(--accent);color:#fff}
+#race-settings .ctrl-btn{flex:1;text-align:center}
 
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
 .stat-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden}
@@ -144,6 +145,24 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.9);backdrop-fil
 .track-bar{flex:1;height:28px;background:var(--surface);border-radius:8px;overflow:hidden;border:1px solid var(--border);position:relative}
 .track-fill{height:100%;border-radius:8px;transition:width .3s ease;min-width:4px;position:relative;display:flex;align-items:center;justify-content:flex-end;padding-right:8px}
 .track-wpm{font-family:var(--mono);font-size:11px;color:var(--muted);width:60px;text-align:right;flex-shrink:0}
+
+.chat-panel{border:1px solid var(--border);border-radius:12px;margin-top:16px;display:none;overflow:hidden}
+.chat-header{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.chat-messages{height:190px;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:5px;scroll-behavior:smooth}
+.chat-messages::-webkit-scrollbar{width:4px}.chat-messages::-webkit-scrollbar-track{background:transparent}.chat-messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.chat-msg{display:flex;gap:7px;align-items:flex-end}
+.chat-msg.mine{flex-direction:row-reverse}
+.chat-avatar{width:22px;height:22px;border-radius:50%;font-size:9px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-bottom:2px}
+.chat-bubble{background:var(--surface);border:1px solid var(--border);border-radius:10px;border-bottom-left-radius:3px;padding:6px 10px;max-width:82%;word-break:break-word}
+.chat-msg.mine .chat-bubble{background:rgba(109,40,217,0.18);border-color:rgba(109,40,217,0.35);border-bottom-left-radius:10px;border-bottom-right-radius:3px}
+.chat-name{font-size:10px;color:var(--muted);margin-bottom:2px;font-weight:500}
+.chat-text{font-size:13px;color:var(--text);line-height:1.4}
+.chat-system-msg{text-align:center;font-size:11px;color:var(--muted);padding:2px 0}
+.chat-input-row{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--border);background:var(--surface)}
+.chat-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px;font-family:var(--sans);outline:none;transition:.15s}
+.chat-input:focus{border-color:rgba(109,40,217,0.5)}
+.chat-send{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 11px;cursor:pointer;font-size:12px;transition:.15s;flex-shrink:0}
+.chat-send:hover{background:var(--accent2)}
 
 .race-text-box{display:none;margin-top:16px}
 .countdown-overlay{position:absolute;inset:0;background:rgba(10,10,15,0.85);border-radius:16px;display:none;align-items:center;justify-content:center;z-index:10;flex-direction:column;gap:8px}
@@ -283,11 +302,37 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.9);backdrop-fil
           <div class="section-title">Room Code</div>
           <div class="room-code-display" id="room-code-show">------</div>
           <div id="room-status-badge" class="room-status-badge badge-waiting"><span class="dot" style="width:6px;height:6px;border-radius:50%;background:currentColor"></span> Waiting for players</div>
-          <button class="btn-start" id="btn-start-race" onclick="startRace()"><i class="fa-solid fa-flag-checkered"></i> Start Race!</button>
+
+          <div id="race-settings" style="margin:14px 0 0">
+            <div style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">Mode</div>
+            <div class="ctrl-group" id="multi-mode-group" style="width:100%;margin-bottom:10px">
+              <button class="ctrl-btn active" onclick="setRaceMode('normal',this)">Normal</button>
+              <button class="ctrl-btn" onclick="setRaceMode('punctuation',this)">@ Punct</button>
+              <button class="ctrl-btn" onclick="setRaceMode('numbers',this)"># Nums</button>
+            </div>
+            <div style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">Time Limit</div>
+            <div class="ctrl-group" id="multi-time-group" style="width:100%">
+              <button class="ctrl-btn" onclick="setRaceTime(15,this)">15s</button>
+              <button class="ctrl-btn" onclick="setRaceTime(30,this)">30s</button>
+              <button class="ctrl-btn active" onclick="setRaceTime(60,this)">60s</button>
+              <button class="ctrl-btn" onclick="setRaceTime(120,this)">120s</button>
+            </div>
+          </div>
+
+          <button class="btn-start" id="btn-start-race" onclick="startRace()" style="margin-top:14px"><i class="fa-solid fa-flag-checkered"></i> Start Race!</button>
         </div>
 
         <div class="section-title" id="players-lbl" style="display:none">Players</div>
         <div class="players-list" id="players-list"></div>
+
+        <div class="chat-panel" id="chat-panel">
+          <div class="chat-header"><i class="fa-regular fa-message"></i> Room Chat</div>
+          <div class="chat-messages" id="chat-messages"></div>
+          <div class="chat-input-row">
+            <input class="chat-input" id="chat-input" placeholder="Say something..." maxlength="200" autocomplete="off">
+            <button class="chat-send" id="chat-send-btn" onclick="sendChat()"><i class="fa-solid fa-paper-plane"></i></button>
+          </div>
+        </div>
       </div>
 
       <div class="race-main" style="position:relative">
@@ -321,7 +366,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.9);backdrop-fil
               <div class="stat-box"><div class="stat-lbl">Accuracy</div><div class="stat-val acc" id="race-acc">100</div></div>
               <div class="stat-box"><div class="stat-lbl">Progress</div><div class="stat-val" style="color:var(--blue)" id="race-prog">0%</div></div>
               <div class="stat-box"><div class="stat-lbl">Position</div><div class="stat-val" style="color:var(--amber)" id="race-pos">#-</div></div>
-              <div class="stat-box time-box"><div class="stat-lbl">Time</div><div class="stat-val timer" id="race-time">0:00</div><div class="stat-unit">elapsed</div></div>
+              <div class="stat-box time-box"><div class="stat-lbl" id="race-time-lbl">Time</div><div class="stat-val timer" id="race-time">0:00</div><div class="stat-unit" id="race-time-unit">elapsed</div></div>
             </div>
           </div>
         </div>
@@ -346,7 +391,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.9);backdrop-fil
 <script>
 var ME = {
   username: '<%= user.username %>',
-  id: '<%= user.id %>',
+  id: <%= user.id %>,
   color: '<%= user.avatar_color %>'
 };
 var socket = io();
@@ -678,6 +723,94 @@ var raceStarted = false;
 var raceStartTs = null;
 var raceTimer = null;
 var raceElapsed = 0;
+var raceMode = 'normal';
+var raceTimeLimit = 60;
+var currentRaceTimeLimit = 60;
+
+function setRaceMode(m, btn) {
+  if (!isHost) return;
+  raceMode = m;
+  document.getElementById('multi-mode-group').querySelectorAll('.ctrl-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+}
+
+function setRaceTime(t, btn) {
+  if (!isHost) return;
+  raceTimeLimit = t;
+  document.getElementById('multi-time-group').querySelectorAll('.ctrl-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+}
+
+function syncSettingsUI(textMode, timeLimit, editable) {
+  var mg = document.getElementById('multi-mode-group');
+  var tg = document.getElementById('multi-time-group');
+  mg.querySelectorAll('.ctrl-btn').forEach(function(b) {
+    b.classList.remove('active');
+    b.disabled = !editable;
+    b.style.opacity = editable ? '' : '0.5';
+    b.style.cursor = editable ? '' : 'default';
+  });
+  tg.querySelectorAll('.ctrl-btn').forEach(function(b) {
+    b.classList.remove('active');
+    b.disabled = !editable;
+    b.style.opacity = editable ? '' : '0.5';
+    b.style.cursor = editable ? '' : 'default';
+  });
+  var modeMap = {'normal':0,'punctuation':1,'numbers':2};
+  var timeMap = {15:0,30:1,60:2,120:3};
+  if (modeMap[textMode] !== undefined) mg.querySelectorAll('.ctrl-btn')[modeMap[textMode]].classList.add('active');
+  if (timeMap[timeLimit] !== undefined) tg.querySelectorAll('.ctrl-btn')[timeMap[timeLimit]].classList.add('active');
+}
+
+// ─── CHAT ─────────────────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function appendChatMsg(data) {
+  var el = document.getElementById('chat-messages');
+  var isMe = data.username === ME.username;
+  var html = '<div class="chat-msg ' + (isMe ? 'mine' : '') + '">' +
+    '<div class="chat-avatar" style="background:' + escapeHtml(data.color || '#7c3aed') + '">' + escapeHtml(data.username[0].toUpperCase()) + '</div>' +
+    '<div class="chat-bubble">' +
+      (!isMe ? '<div class="chat-name">' + escapeHtml(data.username) + (data.isHost ? ' <i class="fa-solid fa-crown" style="color:var(--amber);font-size:9px"></i>' : '') + '</div>' : '') +
+      '<div class="chat-text">' + escapeHtml(data.text) + '</div>' +
+    '</div>' +
+    '</div>';
+  el.insertAdjacentHTML('beforeend', html);
+  el.scrollTop = el.scrollHeight;
+}
+
+function appendSystemMsg(text) {
+  var el = document.getElementById('chat-messages');
+  el.insertAdjacentHTML('beforeend', '<div class="chat-system-msg">— ' + escapeHtml(text) + ' —</div>');
+  el.scrollTop = el.scrollHeight;
+}
+
+function sendChat() {
+  var input = document.getElementById('chat-input');
+  var text = input.value.trim();
+  if (!text || !currentRoom) return;
+  socket.emit('chat_message', { roomCode: currentRoom, text: text });
+  input.value = '';
+}
+
+document.getElementById('chat-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
+});
+
+socket.on('chat_message', function(data) { appendChatMsg(data); });
+socket.on('chat_system', function(data) { appendSystemMsg(data.text); });
+
+function showChat() {
+  document.getElementById('chat-panel').style.display = 'block';
+}
+
+function hideChat() {
+  document.getElementById('chat-panel').style.display = 'none';
+  document.getElementById('chat-messages').innerHTML = '';
+  document.getElementById('chat-input').value = '';
+}
 
 function createRoom() {
   if (currentRoom) socket.emit('leave_room', { roomCode: currentRoom });
@@ -692,31 +825,37 @@ function joinRoom() {
 }
 
 function startRace() {
-  if (currentRoom) socket.emit('start_race', { roomCode: currentRoom });
+  if (currentRoom) socket.emit('start_race', { roomCode: currentRoom, textMode: raceMode, timeLimit: raceTimeLimit });
 }
 
 socket.on('room_created', function(data) {
   currentRoom = data.roomCode;
   isHost = true;
-  raceText = data.text;
+  raceText = data.text || '';
+  raceMode = 'normal'; raceTimeLimit = 60;
   document.getElementById('room-info').style.display = 'block';
   document.getElementById('room-code-show').textContent = data.roomCode;
   document.getElementById('players-lbl').style.display = 'block';
   document.getElementById('btn-start-race').style.display = 'block';
   document.getElementById('race-idle').style.display = 'none';
   document.getElementById('race-lobby').style.display = 'block';
+  syncSettingsUI('normal', 60, true);
+  showChat();
+  appendSystemMsg('Room created — invite friends with code ' + data.roomCode);
   toast('Room created: ' + data.roomCode, 'success');
 });
 
 socket.on('room_joined', function(data) {
   currentRoom = data.roomCode;
   isHost = false;
-  raceText = data.text;
+  raceText = data.text || '';
   document.getElementById('room-info').style.display = 'block';
   document.getElementById('room-code-show').textContent = data.roomCode;
   document.getElementById('players-lbl').style.display = 'block';
   document.getElementById('race-idle').style.display = 'none';
   document.getElementById('race-lobby').style.display = 'block';
+  syncSettingsUI('normal', 60, false);
+  showChat();
   toast('Joined room ' + data.roomCode, 'success');
 });
 
@@ -728,6 +867,9 @@ socket.on('room_state', function(data) {
   renderRaceTracks(data.players);
   if (data.hostId === ME.id) {
     document.getElementById('btn-start-race').style.display = 'block';
+    syncSettingsUI(data.textMode || 'normal', data.timeLimit || 60, true);
+  } else {
+    syncSettingsUI(data.textMode || 'normal', data.timeLimit || 60, false);
   }
 });
 
@@ -761,36 +903,47 @@ socket.on('race_start', function(data) {
   raceText = data.text;
   raceStarted = true;
   raceStartTs = Date.now();
+  currentRaceTimeLimit = data.timeLimit || 0;
 
   document.getElementById('countdown-overlay').style.display = 'none';
   document.getElementById('race-text-box').style.display = 'block';
 
-  // Initialize race text display with full character highlighting
   document.getElementById('race-text-display').innerHTML = renderText(raceText, '');
 
   var raceInp = document.getElementById('race-hidden-input');
   raceInp.disabled = false;
   raceInp.value = '';
 
-  // Reset race stats
   document.getElementById('race-wpm').textContent = '0';
   document.getElementById('race-acc').textContent = '100';
   document.getElementById('race-prog').textContent = '0%';
   document.getElementById('race-pos').textContent = '#-';
-  document.getElementById('race-time').textContent = '0:00';
+  document.getElementById('race-time').textContent = currentRaceTimeLimit > 0
+    ? (Math.floor(currentRaceTimeLimit/60) + ':' + (currentRaceTimeLimit%60 < 10 ? '0' : '') + currentRaceTimeLimit%60)
+    : '0:00';
+  document.getElementById('race-time-lbl').textContent = currentRaceTimeLimit > 0 ? 'Time Left' : 'Time';
+  document.getElementById('race-time-unit').textContent = currentRaceTimeLimit > 0 ? 'remaining' : 'elapsed';
 
-  // Start elapsed timer
   if (raceTimer) clearInterval(raceTimer);
   raceElapsed = 0;
   raceTimer = setInterval(function() {
     raceElapsed++;
-    var m = Math.floor(raceElapsed / 60);
-    var s = raceElapsed % 60;
-    document.getElementById('race-time').textContent = m + ':' + (s < 10 ? '0' : '') + s;
+    var display, m, s;
+    if (currentRaceTimeLimit > 0) {
+      var remaining = Math.max(0, currentRaceTimeLimit - raceElapsed);
+      m = Math.floor(remaining / 60); s = remaining % 60;
+      display = m + ':' + (s < 10 ? '0' : '') + s;
+      if (remaining <= 10) document.getElementById('race-time').style.color = 'var(--red)';
+    } else {
+      m = Math.floor(raceElapsed / 60); s = raceElapsed % 60;
+      display = m + ':' + (s < 10 ? '0' : '') + s;
+    }
+    document.getElementById('race-time').textContent = display;
   }, 1000);
 
   document.getElementById('room-status-badge').innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;animation:caretBlink .8s ease infinite"></span> Racing!';
 
+  appendSystemMsg('Race started — good luck!');
   focusRaceInput();
   toast('GO! Type as fast as you can!', 'info');
 });
@@ -807,6 +960,8 @@ socket.on('race_finished', function(data) {
   document.getElementById('race-text-box').style.display = 'none';
   document.getElementById('multi-result').style.display = 'block';
   renderFinalResults(data.players);
+  var winner = data.players[0];
+  if (winner) appendSystemMsg('Race over! ' + winner.username + ' wins with ' + winner.wpm + ' WPM');
 });
 
 socket.on('player_left', function(data) { toast(data.username + ' left the room', 'error'); });
@@ -827,7 +982,13 @@ socket.on('room_reset', function(data) {
   document.getElementById('race-text-display').innerHTML = '';
   document.getElementById('room-status-badge').innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block"></span> Waiting for players';
   document.getElementById('room-status-badge').className = 'room-status-badge badge-waiting';
-  if (isHost) document.getElementById('btn-start-race').style.display = 'block';
+  document.getElementById('race-time').style.color = '';
+  if (isHost) {
+    document.getElementById('btn-start-race').style.display = 'block';
+    syncSettingsUI(data.textMode || raceMode, data.timeLimit || raceTimeLimit, true);
+  } else {
+    syncSettingsUI(data.textMode || 'normal', data.timeLimit || 60, false);
+  }
   toast('Race reset! Host can start a new race.', 'info');
 });
 
@@ -835,7 +996,8 @@ socket.on('new_host', function(data) {
   if (data.username === ME.username) {
     isHost = true;
     document.getElementById('btn-start-race').style.display = 'block';
-    toast('You are now the host', 'info');
+    syncSettingsUI(raceMode, raceTimeLimit, true);
+    toast('You are now the host — configure settings and start the race', 'info');
   }
 });
 
@@ -859,12 +1021,15 @@ document.getElementById('race-hidden-input').addEventListener('input', function(
     socket.emit('progress_update', { roomCode: currentRoom, progress: prog, wpm: wpm, accuracy: acc });
   }
 
-  if (typed === raceText) {
+  if (typed.length >= raceText.length) {
+    var finalTyped = typed.slice(0, raceText.length);
+    this.value = finalTyped;
+    var finalAcc = calcAcc(finalTyped, raceText);
+    var finalWpm = calcWPMFromChars(finalTyped.length, (Date.now() - raceStartTs) / 1000);
     var finishMs = Date.now() - raceStartTs;
-    socket.emit('player_finished', { roomCode: currentRoom, wpm: wpm, accuracy: acc, finishTimeMs: finishMs });
+    socket.emit('player_finished', { roomCode: currentRoom, wpm: finalWpm, accuracy: finalAcc, finishTimeMs: finishMs });
     this.disabled = true;
-    // Show all chars as correct on finish
-    document.getElementById('race-text-display').innerHTML = renderText(raceText, typed);
+    document.getElementById('race-text-display').innerHTML = renderText(raceText, finalTyped);
     toast('You finished! 🎉', 'success');
   }
 });
@@ -956,7 +1121,9 @@ function renderFinalResults(players) {
 function leaveRace() {
   if (currentRoom) socket.emit('leave_room', { roomCode: currentRoom });
   if (raceTimer) { clearInterval(raceTimer); raceTimer = null; }
-  raceElapsed = 0;
+  raceElapsed = 0; raceMode = 'normal'; raceTimeLimit = 60; currentRaceTimeLimit = 0;
+  document.getElementById('race-time').style.color = '';
+  hideChat();
   currentRoom = null; isHost = false; raceStarted = false;
   document.getElementById('room-info').style.display = 'none';
   document.getElementById('players-lbl').style.display = 'none';

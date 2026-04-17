@@ -80,11 +80,29 @@ const WORD_BANK = [
   'love','cause','rain','wall','catch','wish','drop','ground','stop','build'
 ];
 
-function generateRaceText(wordCount) {
+const NUM_BANK = ['42','100','256','1024','7','13','99','365','2048','3','16','64','512','24','128','200','500','1000','32','88'];
+
+function generateRaceText(wordCount, mode) {
   wordCount = wordCount || 40;
+  mode = mode || 'normal';
   const words = [];
   for (let i = 0; i < wordCount; i++) {
-    words.push(WORD_BANK[Math.floor(Math.random() * WORD_BANK.length)]);
+    if (mode === 'numbers' && Math.random() < 0.22) {
+      words.push(NUM_BANK[Math.floor(Math.random() * NUM_BANK.length)]);
+    } else {
+      words.push(WORD_BANK[Math.floor(Math.random() * WORD_BANK.length)]);
+    }
+  }
+  if (mode === 'punctuation') {
+    const puncts = [', ', '! ', '? ', '... ', '— ', '; '];
+    let result = '';
+    for (let j = 0; j < words.length; j++) {
+      result += words[j];
+      if (j < words.length - 1) {
+        result += Math.random() < 0.18 ? puncts[Math.floor(Math.random() * puncts.length)] : ' ';
+      }
+    }
+    return result;
   }
   return words.join(' ');
 }
@@ -174,7 +192,7 @@ app.get('/dashboard', requireAuth, async (req, res) => {
   const userId = req.session.user.id;
   try {
     const soloResultsRes = await db.query(
-      `SELECT * FROM solo_results WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20`, [userId]
+      `SELECT * FROM solo_results WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50`, [userId]
     );
     const soloStatsRes = await db.query(
       `SELECT MAX(wpm) as best_wpm, AVG(wpm) as avg_wpm, AVG(accuracy) as avg_acc,
@@ -184,7 +202,7 @@ app.get('/dashboard', requireAuth, async (req, res) => {
     const raceResultsRes = await db.query(
       `SELECT rr.*, r.created_at as race_date FROM race_results rr
        JOIN rooms r ON rr.room_id = r.id
-       WHERE rr.user_id = $1 ORDER BY r.created_at DESC LIMIT 20`, [userId]
+       WHERE rr.user_id = $1 ORDER BY r.created_at DESC LIMIT 50`, [userId]
     );
     const raceStatsRes = await db.query(
       `SELECT COUNT(*) as total_races,
@@ -295,13 +313,22 @@ io.on('connection', (socket) => {
       accuracy: 100, finished: false, finishPos: 0
     });
     socket.emit('room_joined', { roomCode, text: room.text, roomId: room.id });
+    io.to(roomCode).emit('chat_system', { text: user.username + ' joined the room' });
     broadcastRoomState(roomCode);
   });
 
-  socket.on('start_race', ({ roomCode }) => {
+  socket.on('start_race', ({ roomCode, textMode, timeLimit }) => {
     const room = activeRooms.get(roomCode);
     if (!room || room.hostId !== user?.id) return;
     if (room.players.size < 1) return socket.emit('error', 'Need at least 1 player');
+
+    textMode = ['normal','punctuation','numbers'].includes(textMode) ? textMode : 'normal';
+    timeLimit = [15, 30, 60, 120].includes(timeLimit) ? timeLimit : 60;
+    const wcMap = { 15: 22, 30: 38, 60: 65, 120: 110 };
+    room.text = generateRaceText(wcMap[timeLimit], textMode);
+    room.textMode = textMode;
+    room.timeLimit = timeLimit;
+
     room.status = 'countdown';
     io.to(roomCode).emit('countdown_start');
     let count = 3;
@@ -312,7 +339,11 @@ io.on('connection', (socket) => {
         clearInterval(cd);
         room.status = 'racing';
         room.raceStartTime = Date.now();
-        io.to(roomCode).emit('race_start', { text: room.text, timestamp: room.raceStartTime });
+        io.to(roomCode).emit('race_start', { text: room.text, timestamp: room.raceStartTime, timeLimit, textMode });
+        room.raceTimeout = setTimeout(() => {
+          const rm = activeRooms.get(roomCode);
+          if (rm && rm.status === 'racing') endRace(roomCode);
+        }, timeLimit * 1000);
       }
     }, 1000);
   });
@@ -362,11 +393,11 @@ io.on('connection', (socket) => {
     const room = activeRooms.get(roomCode);
     if (!room || room.hostId !== user?.id) return socket.emit('error', 'Only the host can restart the race');
 
-    const newText = generateRaceText(40);
-    room.text = newText;
+    if (room.raceTimeout) { clearTimeout(room.raceTimeout); room.raceTimeout = null; }
+    room.textMode = room.textMode || 'normal';
+    room.timeLimit = room.timeLimit || 60;
     room.status = 'waiting';
     room.raceStartTime = null;
-    if (room.countdownTimer) { clearInterval(room.countdownTimer); room.countdownTimer = null; }
 
     room.players.forEach(p => {
       p.progress = 0; p.wpm = 0; p.accuracy = 100;
@@ -375,13 +406,29 @@ io.on('connection', (socket) => {
 
     try {
       await db.query(
-        'UPDATE rooms SET status = $1, text_content = $2, finished_at = NULL WHERE id = $3',
-        ['waiting', newText, room.id]
+        'UPDATE rooms SET status = $1, finished_at = NULL WHERE id = $2',
+        ['waiting', room.id]
       );
     } catch (e) { console.error('reset_room db error:', e.message); }
 
-    io.to(roomCode).emit('room_reset', { text: newText });
+    io.to(roomCode).emit('room_reset', { textMode: room.textMode, timeLimit: room.timeLimit });
     broadcastRoomState(roomCode);
+  });
+
+  socket.on('chat_message', ({ roomCode, text }) => {
+    if (!user) return;
+    const room = activeRooms.get(roomCode);
+    if (!room) return;
+    const sanitized = String(text || '').trim().slice(0, 200);
+    if (!sanitized) return;
+    const payload = {
+      username: user.username,
+      color: user.avatar_color || '#7c3aed',
+      text: sanitized,
+      isHost: room.hostId === user.id
+    };
+    socket.emit('chat_message', payload);          // echo to sender
+    socket.to(roomCode).emit('chat_message', payload); // broadcast to others
   });
 
   socket.on('leave_room', ({ roomCode }) => {
@@ -391,6 +438,7 @@ io.on('connection', (socket) => {
     room.players.delete(socket.id);
     socket.leave(roomCode);
     io.to(roomCode).emit('player_left', { username: player.username });
+    io.to(roomCode).emit('chat_system', { text: player.username + ' left the room' });
     if (room.players.size === 0) {
       activeRooms.delete(roomCode);
     } else {
@@ -428,6 +476,7 @@ async function endRace(roomCode) {
   const room = activeRooms.get(roomCode);
   if (!room || room.status === 'finished') return;
   room.status = 'finished';
+  if (room.raceTimeout) { clearTimeout(room.raceTimeout); room.raceTimeout = null; }
   try {
     await db.query(
       'UPDATE rooms SET status = $1, finished_at = NOW() WHERE room_code = $2',
@@ -449,11 +498,17 @@ function broadcastRoomState(roomCode) {
     status: room.status,
     hostId: room.hostId,
     playerCount: room.players.size,
-    roomCode
+    roomCode,
+    textMode: room.textMode || 'normal',
+    timeLimit: room.timeLimit || 60
   });
 }
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🚀 TypeFun server running at http://localhost:${PORT}`);
+  if( process.env.NODE_ENV === 'production' ) {
+    console.log(`🚀 TypeFun server running in production mode on port ${PORT}`);
+  } else {
+    console.log(`🚀 TypeFun server running in development mode on port ${PORT}`);
+  }
 });

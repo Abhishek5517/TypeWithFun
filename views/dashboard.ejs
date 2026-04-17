@@ -76,6 +76,14 @@ tr:hover td{background:rgba(42,42,61,0.3);color:var(--text)}
 
 .section{display:none}
 .section.show{display:block}
+
+.pagination{display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+.pg-btns{display:flex;gap:6px}
+.pg-btn{background:var(--surface);border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:500;cursor:pointer;transition:.15s;font-family:var(--sans);display:flex;align-items:center;gap:6px}
+.pg-btn:hover:not(:disabled){background:var(--card);color:var(--text);border-color:var(--border2)}
+.pg-btn:disabled{opacity:0.3;cursor:default}
+.pg-info{font-size:13px;color:var(--muted)}
+.pg-info span{color:var(--text2);font-weight:500}
 </style>
 </head>
 <body>
@@ -177,19 +185,15 @@ tr:hover td{background:rgba(42,42,61,0.3);color:var(--text)}
       <% if(soloResults && soloResults.length > 0) { %>
       <table>
         <thead><tr><th>#</th><th>WPM</th><th>Accuracy</th><th>Duration</th><th>Mode</th><th>Date</th></tr></thead>
-        <tbody>
-        <% soloResults.forEach(function(r, i) { %>
-        <tr>
-          <td><%=i+1%></td>
-          <td class="td-wpm"><%=parseInt(r.wpm) || 0%></td>
-          <td class="td-acc"><%=Math.round(parseFloat(r.accuracy) || 0)%>%</td>
-          <td><%=parseInt(r.duration_seconds) || 0%>s</td>
-          <td><span style="padding:2px 8px;border-radius:6px;font-size:11px;background:rgba(109,40,217,0.15);color:var(--accent3)"><%=r.mode || 'normal'%></span></td>
-          <td><%=r.created_at ? new Date(r.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '-'%></td>
-        </tr>
-        <% }) %>
-        </tbody>
+        <tbody id="solo-tbody"></tbody>
       </table>
+      <div class="pagination" id="solo-pagination">
+        <div class="pg-info">Showing <span id="solo-range"></span> of <span id="solo-total"></span> tests</div>
+        <div class="pg-btns">
+          <button class="pg-btn" id="solo-prev" onclick="soloPageChange(-1)"><i class="fa-solid fa-chevron-left"></i> Prev</button>
+          <button class="pg-btn" id="solo-next" onclick="soloPageChange(1)">Next <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </div>
       <% } else { %>
       <div class="empty-state"><i class="fa-regular fa-keyboard"></i><div>No solo tests yet</div><div style="font-size:13px;margin-top:4px"><a href="/play" style="color:var(--accent3)">Start practicing →</a></div></div>
       <% } %>
@@ -230,28 +234,15 @@ tr:hover td{background:rgba(42,42,61,0.3);color:var(--text)}
       <% if(raceResults && raceResults.length > 0) { %>
       <table>
         <thead><tr><th>Position</th><th>WPM</th><th>Accuracy</th><th>Finish Time</th><th>Date</th></tr></thead>
-        <tbody>
-        <% raceResults.forEach(function(r) {
-          var pos        = parseInt(r.finish_position) || 0;
-          var finishSec  = parseFloat(r.finish_time_seconds);
-          var raceDate   = r.race_date || r.created_at;
-        %>
-        <tr>
-          <td class="td-pos1">
-            <% if(pos === 1){ %>🥇 1st
-            <% } else if(pos === 2){ %>🥈 2nd
-            <% } else if(pos === 3){ %>🥉 3rd
-            <% } else if(pos > 3){ %>#<%=pos%>
-            <% } else { %>-<% } %>
-          </td>
-          <td class="td-wpm"><%=parseInt(r.wpm) || 0%></td>
-          <td class="td-acc"><%=Math.round(parseFloat(r.accuracy) || 0)%>%</td>
-          <td style="font-family:var(--mono);font-size:12px"><%=!isNaN(finishSec) ? finishSec.toFixed(1)+'s' : 'DNF'%></td>
-          <td><%=raceDate ? new Date(raceDate).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '-'%></td>
-        </tr>
-        <% }) %>
-        </tbody>
+        <tbody id="race-tbody"></tbody>
       </table>
+      <div class="pagination" id="race-pagination">
+        <div class="pg-info">Showing <span id="race-range"></span> of <span id="race-total"></span> races</div>
+        <div class="pg-btns">
+          <button class="pg-btn" id="race-prev" onclick="racePageChange(-1)"><i class="fa-solid fa-chevron-left"></i> Prev</button>
+          <button class="pg-btn" id="race-next" onclick="racePageChange(1)">Next <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </div>
       <% } else { %>
       <div class="empty-state"><i class="fa-solid fa-users"></i><div>No races yet</div><div style="font-size:13px;margin-top:4px"><a href="/play" style="color:var(--accent3)">Start a race →</a></div></div>
       <% } %>
@@ -321,6 +312,73 @@ new Chart(ctx, {
   }
 });
 <% } %>
+
+// ─── PAGINATION ───────────────────────────────────────────────────────────
+var PER_PAGE = 10;
+var soloData = <%- JSON.stringify(soloResults || []) %>;
+var raceData = <%- JSON.stringify(raceResults || []) %>;
+var soloPage = 1;
+var racePage = 1;
+
+function fmtDate(d) {
+  if (!d) return '-';
+  return new Date(d).toLocaleDateString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+}
+
+function renderSoloTable(page) {
+  soloPage = page;
+  var start = (page - 1) * PER_PAGE;
+  var slice = soloData.slice(start, start + PER_PAGE);
+  var totalPages = Math.ceil(soloData.length / PER_PAGE);
+  var html = '';
+  slice.forEach(function(r, i) {
+    html += '<tr>' +
+      '<td>' + (start + i + 1) + '</td>' +
+      '<td class="td-wpm">' + (parseInt(r.wpm) || 0) + '</td>' +
+      '<td class="td-acc">' + Math.round(parseFloat(r.accuracy) || 0) + '%</td>' +
+      '<td>' + (parseInt(r.duration_seconds) || 0) + 's</td>' +
+      '<td><span style="padding:2px 8px;border-radius:6px;font-size:11px;background:rgba(109,40,217,0.15);color:var(--accent3)">' + (r.mode || 'normal') + '</span></td>' +
+      '<td>' + fmtDate(r.created_at) + '</td>' +
+      '</tr>';
+  });
+  document.getElementById('solo-tbody').innerHTML = html;
+  document.getElementById('solo-range').textContent = (start + 1) + '–' + Math.min(start + PER_PAGE, soloData.length);
+  document.getElementById('solo-total').textContent = soloData.length;
+  document.getElementById('solo-prev').disabled = page <= 1;
+  document.getElementById('solo-next').disabled = page >= totalPages;
+}
+
+function renderRaceTable(page) {
+  racePage = page;
+  var start = (page - 1) * PER_PAGE;
+  var slice = raceData.slice(start, start + PER_PAGE);
+  var totalPages = Math.ceil(raceData.length / PER_PAGE);
+  var medals = { 1: '🥇 1st', 2: '🥈 2nd', 3: '🥉 3rd' };
+  var html = '';
+  slice.forEach(function(r) {
+    var pos = parseInt(r.finish_position) || 0;
+    var finishSec = parseFloat(r.finish_time_seconds);
+    var posText = medals[pos] || (pos > 3 ? '#' + pos : '-');
+    html += '<tr>' +
+      '<td class="td-pos1">' + posText + '</td>' +
+      '<td class="td-wpm">' + (parseInt(r.wpm) || 0) + '</td>' +
+      '<td class="td-acc">' + Math.round(parseFloat(r.accuracy) || 0) + '%</td>' +
+      '<td style="font-family:var(--mono);font-size:12px">' + (!isNaN(finishSec) ? finishSec.toFixed(1) + 's' : 'DNF') + '</td>' +
+      '<td>' + fmtDate(r.race_date || r.created_at) + '</td>' +
+      '</tr>';
+  });
+  document.getElementById('race-tbody').innerHTML = html;
+  document.getElementById('race-range').textContent = (start + 1) + '–' + Math.min(start + PER_PAGE, raceData.length);
+  document.getElementById('race-total').textContent = raceData.length;
+  document.getElementById('race-prev').disabled = page <= 1;
+  document.getElementById('race-next').disabled = page >= totalPages;
+}
+
+function soloPageChange(dir) { renderSoloTable(soloPage + dir); }
+function racePageChange(dir) { renderRaceTable(racePage + dir); }
+
+if (soloData.length > 0) renderSoloTable(1);
+if (raceData.length > 0) renderRaceTable(1);
 </script>
 </body>
 </html>
