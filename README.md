@@ -1,6 +1,6 @@
 # 🎮 TypeFun — Multiplayer Typing Game
 
-A real-time multiplayer typing speed game built with Node.js, Socket.io, and MySQL.
+A real-time multiplayer typing speed game built with Node.js, Socket.io, and Postgres.
 
 ## Features
 - **Solo Practice** — WPM tracking, accuracy %, multiple text modes (Normal / Punctuation / Numbers), time limits (15s / 30s / 60s / 120s)
@@ -12,7 +12,7 @@ A real-time multiplayer typing speed game built with Node.js, Socket.io, and MyS
 ## Tech Stack
 - **Backend**: Node.js + Express
 - **Realtime**: Socket.io
-- **Database**: MySQL 8+
+- **Database**: Postgres
 - **Templating**: EJS
 - **Auth**: express-session + bcryptjs
 - **Charts**: Chart.js
